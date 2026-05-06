@@ -112,6 +112,7 @@ tailwind.config = {
   .nav-link.active { color: #10b981; background: rgba(16,185,129,0.1); }
 
   @keyframes fadeIn { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform: translateY(0); } }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
   .net-worth-glow-card {
     position: relative;
     border-radius: 16px;
@@ -3311,6 +3312,36 @@ function TransactionModal({ open, onClose, holding, editTxn, onSave }) {
 function InvestmentsPage() {
   const [tick, setTick] = React.useState(0);
   const refresh = () => setTick(t => t + 1);
+  const [refreshing, setRefreshing] = React.useState(false);
+  const [refreshMsg, setRefreshMsg] = React.useState('');
+
+  async function refreshPrices() {
+    const holdings = db.get('holdings', []);
+    const tickers = [...new Set(holdings.map(h => h.ticker).filter(Boolean))];
+    if (!tickers.length) return;
+    setRefreshing(true);
+    setRefreshMsg('');
+    let updated = 0;
+    for (const ticker of tickers) {
+      try {
+        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`;
+        const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+        const res = await fetch(proxy);
+        const json = await res.json();
+        const parsed = JSON.parse(json.contents);
+        const price = parsed?.chart?.result?.[0]?.meta?.regularMarketPrice;
+        if (price) {
+          const list = db.get('holdings', []);
+          db.set('holdings', list.map(h => h.ticker === ticker ? { ...h, latest_price: price } : h));
+          updated++;
+        }
+      } catch {}
+    }
+    setRefreshing(false);
+    setRefreshMsg(updated > 0 ? `Updated ${updated} of ${tickers.length} prices` : 'No prices updated');
+    refresh();
+    setTimeout(() => setRefreshMsg(''), 4000);
+  }
 
   const [filterCat, setFilterCat] = React.useState('All');
   const [filterType, setFilterType] = React.useState('All');
@@ -3378,11 +3409,27 @@ function InvestmentsPage() {
     const list = db.get('holdings', []);
     const idx = list.findIndex(h => h.id === txnHolding.id);
     if (idx === -1) return;
-    const txns = [...(list[idx].transactions || [])];
+    const holding = list[idx];
+    const txns = [...(holding.transactions || [])];
     if (editTxn) {
       const ti = txns.findIndex(t => t.id === editTxn.id);
       if (ti >= 0) txns[ti] = { ...editTxn, ...form };
     } else {
+      // Synthesize opening buy from legacy data when adding first transaction
+      if (txns.length === 0 && parseFloat(holding.units) > 0) {
+        const legacyUnits = parseFloat(holding.units);
+        const legacyPrice = parseFloat(holding.avg_cost) || 0;
+        txns.push({
+          id: Date.now() - 1,
+          date: holding.purchase_date || '2000-01-01',
+          type: 'buy',
+          units: legacyUnits,
+          price: legacyPrice,
+          fee: 0,
+          platform: holding.platform || '',
+          synthetic: true,
+        });
+      }
       txns.push({ id: Date.now(), ...form });
     }
     txns.sort((a, b) => a.date > b.date ? 1 : -1);
@@ -3426,10 +3473,21 @@ function InvestmentsPage() {
   return (
     <div className="space-y-4">
       <PageHeader right={
-        <button onClick={openAddHolding} className="btn-primary flex items-center gap-1.5">
-          <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Add holding
-        </button>
+        <div className="flex items-center gap-2">
+          {refreshMsg && <span className="text-xs text-stone-500">{refreshMsg}</span>}
+          <button onClick={refreshPrices} disabled={refreshing}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-stone-700 text-stone-300 text-xs hover:bg-stone-800 transition-colors disabled:opacity-50">
+            <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"
+              style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }}>
+              <path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+            </svg>
+            {refreshing ? 'Refreshing…' : 'Refresh prices'}
+          </button>
+          <button onClick={openAddHolding} className="btn-primary flex items-center gap-1.5">
+            <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add holding
+          </button>
+        </div>
       } />
 
       {/* Hero */}
@@ -3594,9 +3652,33 @@ function InvestmentsPage() {
                                           Add transaction
                                         </button>
                                       </div>
-                                      {txns.length === 0 ? (
+                                      {txns.length === 0 && !parseFloat(h.units) ? (
                                         <div className="rounded-lg border border-stone-800 px-4 py-3 text-xs text-stone-600 italic">
-                                          No transactions recorded — this holding uses the legacy model (units + avg cost). Add a transaction to upgrade.
+                                          No transactions recorded. Add a transaction to start tracking.
+                                        </div>
+                                      ) : txns.length === 0 ? (
+                                        <div className="rounded-lg border border-stone-800 overflow-hidden">
+                                          <table className="w-full text-xs">
+                                            <thead><tr className="bg-stone-800/60 text-stone-500">
+                                              <th className="text-left px-3 py-2">Date</th>
+                                              <th className="text-center px-2 py-2">Type</th>
+                                              <th className="text-right px-3 py-2">Units</th>
+                                              <th className="text-right px-3 py-2">Avg Price</th>
+                                              <th className="text-right px-3 py-2">Value</th>
+                                              <th className="px-2 py-2 w-12"></th>
+                                            </tr></thead>
+                                            <tbody>
+                                              <tr className="text-stone-300">
+                                                <td className="px-3 py-1.5 text-stone-500 italic">{h.purchase_date || '—'}</td>
+                                                <td className="px-2 py-1.5 text-center"><span className="px-1.5 py-0.5 rounded font-medium bg-stone-700/40 text-stone-400">legacy</span></td>
+                                                <td className="px-3 py-1.5 text-right tabular-nums">{fmtNum(parseFloat(h.units) || 0, 3)}</td>
+                                                <td className="px-3 py-1.5 text-right tabular-nums">{h.currency} {fmtNum(parseFloat(h.avg_cost) || 0, 2)}</td>
+                                                <td className="px-3 py-1.5 text-right tabular-nums">{h.currency} {fmtNum((parseFloat(h.units) || 0) * (parseFloat(h.avg_cost) || 0), 2)}</td>
+                                                <td className="px-2 py-1.5 text-center text-stone-600 text-[10px]">cost basis</td>
+                                              </tr>
+                                            </tbody>
+                                          </table>
+                                          <p className="px-3 py-2 text-[10px] text-stone-600 border-t border-stone-800">Legacy position — add a transaction to start tracking history</p>
                                         </div>
                                       ) : (
                                         <div className="rounded-lg border border-stone-800 overflow-hidden">
@@ -4593,6 +4675,60 @@ const PAGE_COMPONENTS = {
 };
 
 // ─── App Shell ────────────────────────────────────────────────────────────────
+function Sidebar({ sidebarCollapsed, toggleSidebar, setSidebarOpen, navigate, page, tweaks }) {
+  return (
+  <div className="flex flex-col h-full" style={{ background: '#161412', borderRight: '1px solid #292524', width: sidebarCollapsed ? 56 : 240, transition: 'width 0.25s cubic-bezier(0.4,0,0.2,1)', overflow: 'hidden' }}>
+      {/* Logo */}
+      <div className="px-3 py-5 border-b border-stone-800 flex items-center justify-between" style={{ minHeight: 64 }}>
+        {!sidebarCollapsed && <div>
+          <p style={{ fontFamily: "'Lora', Georgia, serif", fontWeight: 500, fontSize: '1rem', color: '#e8ddd0', letterSpacing: '-0.01em', lineHeight: 1 }}>Wealthfolio</p>
+          <p className="text-[10px] tracking-[0.12em] uppercase text-stone-600 mt-1" style={{ fontFamily: 'Inter, sans-serif' }}>Personal Finance</p>
+        </div>}
+        <button onClick={toggleSidebar} className="lg:flex hidden p-1.5 rounded-lg text-stone-500 hover:text-stone-100 hover:bg-stone-800 transition-colors flex-shrink-0" style={{ marginLeft: sidebarCollapsed ? 'auto' : 0, marginRight: sidebarCollapsed ? 'auto' : 0 }}>
+          <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            {sidebarCollapsed
+              ? <><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></>
+              : <><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></>
+            }
+          </svg>
+        </button>
+        <button onClick={() => setSidebarOpen(false)} className="lg:hidden p-1 text-stone-500 hover:text-stone-100">
+          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+        </button>
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 py-4 px-2 space-y-0.5 overflow-y-auto">
+        {NAV_ITEMS.map(({ id, label, icon }) =>
+      <button key={id} onClick={() => navigate(id)} title={sidebarCollapsed ? label : undefined}
+      className={`nav-link ${page === id ? 'active' : ''}`} style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '0.5rem' : '0.5rem 0.75rem' }}>
+            <span className="flex-shrink-0">{icon}</span>
+            {!sidebarCollapsed && <span>{label}</span>}
+          </button>
+      )}
+      </nav>
+
+      {/* Profile footer */}
+      {!sidebarCollapsed && <div className="p-4 border-t border-stone-800">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold text-stone-900 flex-shrink-0" style={{ background: tweaks.accentColor }}>
+            {(tweaks.userName || 'A')[0].toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-stone-200 truncate">{tweaks.userName || 'Alex'}</p>
+            <p className="text-xs text-stone-600">Personal</p>
+          </div>
+        </div>
+      </div>}
+      {sidebarCollapsed && <div className="p-3 border-t border-stone-800 flex justify-center">
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold text-stone-900 flex-shrink-0" style={{ background: tweaks.accentColor }}>
+          {(tweaks.userName || 'A')[0].toUpperCase()}
+        </div>
+      </div>}
+    </div>
+  );
+}
+
 function App() {
   const [page, setPage] = React.useState(() => localStorage.getItem('wf_page') || 'overview');
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
@@ -4628,70 +4764,20 @@ function App() {
     localStorage.setItem('wf_sidebar_collapsed', String(next));
   }
 
-  const SidebarInner = () =>
-  <div className="flex flex-col h-full" style={{ background: '#161412', borderRight: '1px solid #292524', width: sidebarCollapsed ? 56 : 240, transition: 'width 0.25s cubic-bezier(0.4,0,0.2,1)', overflow: 'hidden' }}>
-      {/* Logo */}
-      <div className="px-3 py-5 border-b border-stone-800 flex items-center justify-between" style={{ minHeight: 64 }}>
-        {!sidebarCollapsed && <div>
-          <p style={{ fontFamily: "'Lora', Georgia, serif", fontWeight: 500, fontSize: '1rem', color: '#e8ddd0', letterSpacing: '-0.01em', lineHeight: 1 }}>Wealthfolio</p>
-          <p className="text-[10px] tracking-[0.12em] uppercase text-stone-600 mt-1" style={{ fontFamily: 'Inter, sans-serif' }}>Personal Finance</p>
-        </div>}
-        <button onClick={toggleSidebar} className="lg:flex hidden p-1.5 rounded-lg text-stone-500 hover:text-stone-100 hover:bg-stone-800 transition-colors flex-shrink-0" style={{ marginLeft: sidebarCollapsed ? 'auto' : 0, marginRight: sidebarCollapsed ? 'auto' : 0 }}>
-          <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            {sidebarCollapsed
-              ? <><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></>
-              : <><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></>
-            }
-          </svg>
-        </button>
-        <button onClick={() => setSidebarOpen(false)} className="lg:hidden p-1 text-stone-500 hover:text-stone-100">
-          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-        </button>
-      </div>
-
-      {/* Nav */}
-      <nav className="flex-1 py-4 px-2 space-y-0.5 overflow-y-auto" data-comment-anchor="0756bdabe7-nav-86-7">
-        {NAV_ITEMS.map(({ id, label, icon }) =>
-      <button key={id} onClick={() => navigate(id)} title={sidebarCollapsed ? label : undefined}
-      className={`nav-link ${page === id ? 'active' : ''}`} style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '0.5rem' : '0.5rem 0.75rem' }}>
-            <span className="flex-shrink-0">{icon}</span>
-            {!sidebarCollapsed && <span>{label}</span>}
-          </button>
-      )}
-      </nav>
-
-      {/* Profile footer */}
-      {!sidebarCollapsed && <div className="p-4 border-t border-stone-800">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold text-stone-900 flex-shrink-0" style={{ background: tweaks.accentColor }}>
-            {(tweaks.userName || 'A')[0].toUpperCase()}
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-stone-200 truncate">{tweaks.userName || 'Alex'}</p>
-            <p className="text-xs text-stone-600">Personal</p>
-          </div>
-        </div>
-      </div>}
-      {sidebarCollapsed && <div className="p-3 border-t border-stone-800 flex justify-center">
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold text-stone-900 flex-shrink-0" style={{ background: tweaks.accentColor }}>
-          {(tweaks.userName || 'A')[0].toUpperCase()}
-        </div>
-      </div>}
-    </div>;
-
+  const sidebarProps = { sidebarCollapsed, toggleSidebar, setSidebarOpen, navigate, page, tweaks };
 
   return (
     <div className="min-h-screen flex" style={{ background: '#1a1714' }}>
       {/* Desktop sidebar */}
       <div className="hidden lg:flex flex-shrink-0 h-screen sticky top-0">
-        <SidebarInner />
+        <Sidebar {...sidebarProps} />
       </div>
 
       {/* Mobile sidebar overlay */}
       {sidebarOpen &&
       <div className="fixed inset-0 z-50 flex lg:hidden">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-          <div className="relative z-10 h-full"><SidebarInner /></div>
+          <div className="relative z-10 h-full"><Sidebar {...sidebarProps} /></div>
         </div>
       }
 
