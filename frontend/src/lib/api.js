@@ -62,23 +62,24 @@ export const snapshotsApi = {
   delete: (id)   => api.delete(`/snapshots/${id}`),
 };
 
-// Investments / holdings
+// Holdings (investments)
 export const investmentsApi = {
-  list:   ()     => api.get('/investments'),
-  create: (body) => api.post('/investments', body),
-  update: (id, body) => api.put(`/investments/${id}`, body),
-  delete: (id)   => api.delete(`/investments/${id}`),
+  list:   ()             => api.get('/holdings'),
+  create: (body)         => api.post('/holdings', body),
+  update: (id, body)     => api.put(`/holdings/${id}`, body),
+  delete: (id)           => api.delete(`/holdings/${id}`),
 };
 
-// Transactions (buy/sell/dividend)
+// Transactions per holding
 export const transactionsApi = {
-  list:   (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
-    return api.get(`/transactions${qs ? '?' + qs : ''}`);
-  },
-  create: (body) => api.post('/transactions', body),
-  update: (id, body) => api.put(`/transactions/${id}`, body),
-  delete: (id)   => api.delete(`/transactions/${id}`),
+  list:   (holdingId)         => api.get(`/holdings/${holdingId}/transactions`),
+  create: (holdingId, body)   => api.post(`/holdings/${holdingId}/transactions`, body),
+  delete: (holdingId, txnId)  => api.delete(`/holdings/${holdingId}/transactions/${txnId}`),
+};
+
+// Price refresh (Yahoo Finance via Worker)
+export const pricesApi = {
+  refresh: () => api.post('/prices/refresh', {}),
 };
 
 // CPF
