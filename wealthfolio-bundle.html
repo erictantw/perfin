@@ -3270,13 +3270,25 @@ function TickerSearch({ value, onSelect }) {
     timer.current = setTimeout(async () => {
       setLoading(true);
       try {
-        const url = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(q)}&quotesCount=8&newsCount=0`;
-        const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-        const res = await fetch(proxy);
-        const json = await res.json();
-        const data = JSON.parse(json.contents);
-        const quotes = (data?.quotes || []).filter(r => r.symbol && r.quoteType !== 'OPTION');
-        setResults(quotes.slice(0, 8));
+        const yUrl = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(q)}&quotesCount=8&newsCount=0`;
+        let quotes = [];
+        // Try corsproxy.io first (returns raw JSON)
+        try {
+          const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(yUrl)}`);
+          if (res.ok) {
+            const data = await res.json();
+            quotes = data?.quotes || [];
+          }
+        } catch {}
+        // Fall back to allorigins if corsproxy returned nothing
+        if (!quotes.length) {
+          const res2 = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(yUrl)}`);
+          const j = await res2.json();
+          const data2 = JSON.parse(j.contents || '{}');
+          quotes = data2?.quotes || [];
+        }
+        quotes = quotes.filter(r => r.symbol && r.quoteType !== 'OPTION').slice(0, 8);
+        setResults(quotes);
         setOpen(quotes.length > 0);
       } catch { setResults([]); setOpen(false); }
       setLoading(false);
@@ -3523,7 +3535,11 @@ function HoldingModal({ open, onClose, holding, onSave }) {
           <div>
             <label style={ml}>Platform</label>
             <input type="text" value={form.platform} onChange={setF('platform')} placeholder="e.g. IBKR, Moomoo, DBS Vickers"
+              list="platform-suggestions"
               className="w-full rounded-lg px-3 py-2.5 text-sm outline-none" style={ms} />
+            <datalist id="platform-suggestions">
+              {['IBKR','Moomoo','Tiger Brokers','Syfe','FSMOne','StashAway','DBS Vickers','UOB Kay Hian','Phillip Securities','Endowus','Saxo','Webull'].map(p => <option key={p} value={p} />)}
+            </datalist>
           </div>
 
           {catId !== 'Cash' && (
@@ -3659,6 +3675,22 @@ function InvestmentsPage() {
   const [expanded, setExpanded] = React.useState(new Set());
   const [collapsed, setCollapsed] = React.useState(new Set());
   const [allocTab, setAllocTab] = React.useState('category');
+
+  // Cash accounts state
+  const [cashAccounts, setCashAccounts] = React.useState(() => db.get('cash_accounts', []));
+  const [showCashModal, setShowCashModal] = React.useState(false);
+  const [cashForm, setCashForm] = React.useState({ type:'Buffer', bank:'', label:'', amount:'', date: new Date().toISOString().slice(0,10) });
+
+  function saveCashAccount(e) {
+    e.preventDefault();
+    const newAcc = { id: Date.now(), type: cashForm.type, bank: cashForm.bank, label: cashForm.label, amount: parseFloat(cashForm.amount) || 0, date: cashForm.date };
+    const next = [...cashAccounts, newAcc];
+    db.set('cash_accounts', next); setCashAccounts(next); setShowCashModal(false);
+  }
+  function deleteCashAccount(id) {
+    const next = cashAccounts.filter(a => a.id !== id);
+    db.set('cash_accounts', next); setCashAccounts(next);
+  }
 
   const [showHoldingModal, setShowHoldingModal] = React.useState(false);
   const [editHolding, setEditHolding] = React.useState(null);
@@ -3820,6 +3852,138 @@ function InvestmentsPage() {
         </div>
       </div>
 
+      {/* Cash Accounts */}
+      {(() => {
+        const CASH_TYPES = [
+          { id:'Buffer',   color:'#d4a052', desc:'Everyday spending money and short-term emergency float. Highly liquid, instantly accessible.' },
+          { id:'Planned',  color:'#4a9e6e', desc:'Set aside for known upcoming expenses — travel, taxes, big purchases.' },
+          { id:'Reserves', color:'#6ea8c8', desc:'Long-term safety net. 3–6 months of expenses kept separate and untouched.' },
+        ];
+        const totalCash = cashAccounts.reduce((s, a) => s + (a.amount || 0), 0);
+        const today = new Date().toISOString().slice(0,10);
+        return (
+          <div className="card !p-0 overflow-hidden">
+            <div className="flex justify-between items-center px-5 py-3.5 cursor-pointer hover:bg-stone-800/20 transition-colors select-none"
+              style={{ borderBottom:'1px solid rgba(255,255,255,0.05)' }}
+              onClick={() => toggleSection('cash')}>
+              <div className="flex items-center gap-3">
+                <svg width="14" height="14" fill="none" stroke="#9a9088" strokeWidth="2.5" viewBox="0 0 24 24"
+                  className="flex-shrink-0 transition-transform duration-200"
+                  style={{ transform: collapsed.has('cash') ? 'rotate(0deg)' : 'rotate(90deg)' }}>
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+                <h2 style={{ fontFamily:"'Lora',Georgia,serif", fontWeight:400, fontSize:'0.9375rem', color:'#c4bdb4' }}>Cash Accounts</h2>
+              </div>
+              <button onClick={e => { e.stopPropagation(); setCashForm({ type:'Buffer', bank:'', label:'', amount:'', date: today }); setShowCashModal(true); }}
+                className="text-xs font-medium px-3 py-1.5 rounded-lg transition-all"
+                style={{ background:'rgba(74,158,110,0.1)', border:'1px solid rgba(74,158,110,0.22)', color:'#4a9e6e', fontFamily:'Inter,sans-serif' }}>
+                + Add
+              </button>
+            </div>
+            {!collapsed.has('cash') && (
+              <div className="px-5 pb-5 pt-3">
+                {cashAccounts.length === 0 ? (
+                  <p className="text-xs text-center py-6" style={{ color:'#6b6057', fontFamily:'Inter,sans-serif' }}>No cash accounts yet. Add your first account.</p>
+                ) : (
+                  <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(240px, 1fr))', gap:10, alignItems:'start' }}>
+                      {CASH_TYPES.map(ct => {
+                        const accounts = cashAccounts.filter(a => a.type === ct.id);
+                        if (!accounts.length) return null;
+                        const typeTotal = accounts.reduce((s, a) => s + (a.amount || 0), 0);
+                        return (
+                          <div key={ct.id} className="overflow-hidden" style={{ borderLeft:`2px solid ${ct.color}`, borderRadius:10 }}>
+                            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'9px 14px', borderBottom:'0.5px solid rgba(255,255,255,0.05)' }}>
+                              <div style={{ display:'flex', alignItems:'center', gap:7 }}>
+                                <span style={{ width:6, height:6, borderRadius:'50%', background:ct.color, flexShrink:0, display:'inline-block' }} />
+                                <span style={{ fontSize:11, letterSpacing:'0.09em', textTransform:'uppercase', fontWeight:700, color:ct.color, fontFamily:'sans-serif' }}>{ct.id}</span>
+                                <span style={{ fontSize:11, color:'#5a5248', fontFamily:'sans-serif' }}>{accounts.length} account{accounts.length !== 1 ? 's' : ''}</span>
+                              </div>
+                              <span style={{ fontSize:15, fontWeight:600, color:ct.color, fontFamily:'sans-serif', fontVariantNumeric:'tabular-nums' }}>S${fmtNum(typeTotal,0)}</span>
+                            </div>
+                            {accounts.map(acc => (
+                              <div key={acc.id} className="group hover:bg-white/[0.02] transition-colors"
+                                style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 12px' }}>
+                                <div style={{ width:30, height:30, borderRadius:8, flexShrink:0, background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.08)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                                  <span style={{ fontSize:11, fontWeight:700, color:'#9a9088', fontFamily:'sans-serif' }}>{(acc.bank || acc.label || '?')[0].toUpperCase()}</span>
+                                </div>
+                                <div style={{ flex:'1 1 0%', minWidth:0 }}>
+                                  <span className="font-medium transition-colors" style={{ fontSize:13, color:'#d4cfc8', fontFamily:'sans-serif', display:'block', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{acc.bank || acc.label}</span>
+                                  <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:1 }}>
+                                    {acc.label && acc.bank && <span style={{ fontSize:11, color:'#6b6057', fontFamily:'sans-serif' }}>{acc.label}</span>}
+                                    <span style={{ fontSize:11, color:'#5a5248', fontFamily:'sans-serif' }}>as of {acc.date}</span>
+                                  </div>
+                                </div>
+                                <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:2, flexShrink:0 }}>
+                                  <span className="font-semibold" style={{ fontSize:13, color:'#e8e3db', fontFamily:'sans-serif', fontVariantNumeric:'tabular-nums' }}>S${fmtNum(acc.amount,0)}</span>
+                                </div>
+                                <button onClick={() => deleteCashAccount(acc.id)}
+                                  className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-400 text-xs"
+                                  style={{ flexShrink:0, marginLeft:2, color:'#3a3530' }}>✕</button>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div style={{ background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.05)', borderRadius:10, padding:'10px 14px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                      <span style={{ fontSize:11, color:'#6b6057', fontFamily:'sans-serif' }}>Total cash</span>
+                      <span style={{ fontSize:15, fontWeight:700, color:'#5a7e9e', fontFamily:'sans-serif', fontVariantNumeric:'tabular-nums' }}>S${fmtNum(totalCash,0)}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            {/* Add cash modal */}
+            {showCashModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowCashModal(false)} />
+                <div className="relative z-10 w-full max-w-sm rounded-2xl border shadow-2xl" style={{ background:'#1f1c19', borderColor:'rgba(255,255,255,0.08)' }}>
+                  <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
+                    <h2 style={{ fontFamily:"'Lora',Georgia,serif", fontWeight:400, fontSize:'0.9rem', color:'#e8e3db' }}>Add Cash Account</h2>
+                    <button onClick={() => setShowCashModal(false)} className="text-stone-500 hover:text-stone-300 text-xl leading-none">×</button>
+                  </div>
+                  <form onSubmit={saveCashAccount} className="px-5 py-4 flex flex-col gap-3">
+                    {[['Buffer','#d4a052'],['Planned','#4a9e6e'],['Reserves','#6ea8c8']].map(([t, c]) => (
+                      <button key={t} type="button" onClick={() => setCashForm(f => ({...f, type:t}))}
+                        className="text-left px-3 py-2 rounded-lg border transition-all text-sm font-medium"
+                        style={{ borderColor: cashForm.type === t ? c+'66' : c+'22', background: cashForm.type === t ? c+'1a' : c+'08', color: cashForm.type === t ? c : '#8a7d6b', fontFamily:'Inter,sans-serif' }}>
+                        {t}
+                      </button>
+                    ))}
+                    {[
+                      ['Bank', 'bank', 'text', 'e.g. DBS, OCBC, UOB'],
+                      ['Label (optional)', 'label', 'text', 'e.g. Savings, Joint'],
+                      ['Amount (SGD)', 'amount', 'number', '0'],
+                    ].map(([lbl, key, type, ph]) => (
+                      <div key={key}>
+                        <label className="block text-xs uppercase tracking-[0.1em] mb-1" style={{ color:'#8a7d6b', fontFamily:'Inter,sans-serif' }}>{lbl}</label>
+                        <input type={type} step="any" min="0" value={cashForm[key]} required={key !== 'label'}
+                          onChange={e => setCashForm(f => ({...f, [key]: e.target.value}))} placeholder={ph}
+                          className="w-full rounded-lg px-3 py-2 text-sm outline-none"
+                          style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.1)', color:'#e8e3db', fontFamily:'Inter,sans-serif' }} />
+                      </div>
+                    ))}
+                    <div>
+                      <label className="block text-xs uppercase tracking-[0.1em] mb-1" style={{ color:'#8a7d6b', fontFamily:'Inter,sans-serif' }}>Date</label>
+                      <input type="date" value={cashForm.date} onChange={e => setCashForm(f => ({...f, date:e.target.value}))}
+                        className="w-full rounded-lg px-3 py-2 text-sm outline-none"
+                        style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.1)', color:'#e8e3db', fontFamily:'Inter,sans-serif', colorScheme:'dark' }} />
+                    </div>
+                    <div className="flex gap-3 pt-1">
+                      <button type="button" onClick={() => setShowCashModal(false)} className="flex-1 py-2 rounded-lg text-sm"
+                        style={{ border:'1px solid rgba(255,255,255,0.1)', color:'#8a7d6b', fontFamily:'Inter,sans-serif' }}>Cancel</button>
+                      <button type="submit" className="flex-1 py-2 rounded-lg text-sm font-semibold"
+                        style={{ background:'linear-gradient(to right,#d4a052,#a07840)', color:'#1a1714', fontFamily:'Inter,sans-serif' }}>Add</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Holdings */}
       <div className="card !p-0 overflow-hidden">
         <button onClick={() => toggleSection('holdings')} className="w-full px-5 py-4 border-b border-stone-800 flex items-center justify-between hover:bg-stone-800/30 transition-colors">
@@ -3975,7 +4139,7 @@ function InvestmentsPage() {
                                             <tbody>
                                               <tr className="text-stone-300">
                                                 <td className="px-3 py-1.5 text-stone-500 italic">{h.purchase_date || '—'}</td>
-                                                <td className="px-2 py-1.5 text-center"><span className="px-1.5 py-0.5 rounded font-medium bg-stone-700/40 text-stone-400">legacy</span></td>
+                                                <td className="px-2 py-1.5 text-center"><span className="px-1.5 py-0.5 rounded font-medium text-[10px] tracking-wide bg-stone-700/40 text-stone-500">LEGACY</span></td>
                                                 <td className="px-3 py-1.5 text-right tabular-nums">{fmtNum(parseFloat(h.units) || 0, 3)}</td>
                                                 <td className="px-3 py-1.5 text-right tabular-nums">{h.currency} {fmtNum(parseFloat(h.avg_cost) || 0, 2)}</td>
                                                 <td className="px-3 py-1.5 text-right tabular-nums">{h.currency} {fmtNum((parseFloat(h.units) || 0) * (parseFloat(h.avg_cost) || 0), 2)}</td>
@@ -4007,8 +4171,8 @@ function InvestmentsPage() {
                                                   <tr key={t.id} className="text-stone-300 hover:bg-stone-800/20">
                                                     <td className="px-3 py-1.5 text-stone-400">{t.date}</td>
                                                     <td className="px-2 py-1.5 text-center">
-                                                      <span className={`px-1.5 py-0.5 rounded font-medium ${t.type === 'buy' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
-                                                        {t.type}
+                                                      <span className={`px-1.5 py-0.5 rounded font-medium text-[10px] tracking-wide ${t.type === 'buy' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                                                        {t.type === 'buy' ? 'BUY' : 'SELL'}
                                                       </span>
                                                     </td>
                                                     <td className="px-3 py-1.5 text-right tabular-nums">{t.type === 'sell' ? '−' : ''}{fmtNum(parseFloat(t.units) || 0, 3)}</td>
@@ -4066,120 +4230,185 @@ function InvestmentsPage() {
       </div>
 
       {/* Performance Attribution */}
-      {enriched.length > 0 && (
-        <div className="card !p-0 overflow-hidden">
-          <button onClick={() => toggleSection('attribution')} className="w-full px-5 py-4 border-b border-stone-800 flex items-center justify-between hover:bg-stone-800/30 transition-colors">
-            <h2 className="text-sm font-semibold text-stone-100">Performance Attribution</h2>
-            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"
-              style={{ transform: collapsed.has('attribution') ? 'rotate(-90deg)' : '', transition:'transform 0.2s', color:'#6b6057' }}>
-              <path d="M6 9l6 6 6-6"/>
-            </svg>
-          </button>
-          {!collapsed.has('attribution') && (
-            <div className="p-5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div>
-                  <p className="text-xs font-medium text-stone-400 mb-3">Top Contributors</p>
-                  <div className="space-y-2.5">
-                    {topContribs.map(h => (
-                      <div key={h.id}>
-                        <div className="flex items-center justify-between text-xs mb-1">
-                          <span className="font-medium text-stone-200">{h.ticker}</span>
-                          <span className="text-emerald-400 tabular-nums">+{fmtSGD(h.pnl)}</span>
-                        </div>
-                        <div className="h-1.5 bg-stone-800 rounded-full overflow-hidden">
-                          <div className="h-full bg-emerald-500/70 rounded-full" style={{ width: (maxAbsPnl ? h.pnl / maxAbsPnl * 100 : 0) + '%' }} />
-                        </div>
-                      </div>
-                    ))}
-                    {topContribs.length === 0 && <p className="text-xs text-stone-600 italic">No gains recorded yet.</p>}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-stone-400 mb-3">Top Detractors</p>
-                  <div className="space-y-2.5">
-                    {topDetractors.map(h => (
-                      <div key={h.id}>
-                        <div className="flex items-center justify-between text-xs mb-1">
-                          <span className="font-medium text-stone-200">{h.ticker}</span>
-                          <span className="text-red-400 tabular-nums">{fmtSGD(h.pnl)}</span>
-                        </div>
-                        <div className="h-1.5 bg-stone-800 rounded-full overflow-hidden">
-                          <div className="h-full bg-red-500/70 rounded-full" style={{ width: (maxAbsPnl ? Math.abs(h.pnl) / maxAbsPnl * 100 : 0) + '%' }} />
-                        </div>
-                      </div>
-                    ))}
-                    {topDetractors.length === 0 && <p className="text-xs text-stone-600 italic">No losing positions.</p>}
-                  </div>
-                </div>
-              </div>
-              <div className="mt-5 pt-4 border-t border-stone-800 grid grid-cols-3 gap-4 text-center">
-                <div>
-                  <p className="text-xs text-stone-500 mb-1">Unrealised Gain</p>
-                  <p className={`text-sm font-semibold tabular-nums ${totalPnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{totalPnl >= 0 ? '+' : ''}{fmtSGD(totalPnl)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-stone-500 mb-1">On Cost</p>
-                  <p className={`text-sm font-semibold tabular-nums ${totalPnlPct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{totalPnlPct >= 0 ? '+' : ''}{totalPnlPct.toFixed(2)}%</p>
-                </div>
-                <div>
-                  <p className="text-xs text-stone-500 mb-1">Positions</p>
-                  <p className="text-sm font-semibold text-stone-200">{enriched.length}</p>
-                </div>
+      {enriched.length > 0 && (() => {
+        const totalGain = topContribs.reduce((s, h) => s + h.pnl, 0);
+        const totalLoss = Math.abs(topDetractors.reduce((s, h) => s + h.pnl, 0));
+        const maxContrib = topContribs.length ? topContribs[0].pnl : 1;
+        const maxDetract = topDetractors.length ? Math.abs(topDetractors[0].pnl) : 1;
+        return (
+          <div className="card !p-0 overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-stone-800/70 cursor-pointer hover:bg-stone-800/20 transition-colors select-none"
+              onClick={() => toggleSection('attribution')}>
+              <div className="flex items-center gap-3">
+                <svg width="14" height="14" fill="none" stroke="#9a9088" strokeWidth="2.5" viewBox="0 0 24 24"
+                  className="flex-shrink-0 transition-transform duration-200"
+                  style={{ transform: collapsed.has('attribution') ? 'rotate(0deg)' : 'rotate(90deg)' }}>
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+                <h2 style={{ fontFamily:"'Lora',Georgia,serif", fontWeight:400, fontSize:'0.9375rem', color:'#c4bdb4' }}>Performance Attribution</h2>
               </div>
             </div>
-          )}
-        </div>
-      )}
+            {!collapsed.has('attribution') && (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2">
+                  {/* Contributors */}
+                  <div className="p-3">
+                    <div className="flex items-center justify-between mb-1.5 px-1">
+                      <span className="text-[10px] font-bold uppercase tracking-[0.08em]" style={{ color:'#9a9088', fontFamily:'Inter,sans-serif' }}>Top Contributors</span>
+                      <span className="text-xs font-semibold tabular-nums" style={{ color:'#34d399', fontFamily:'Inter,sans-serif' }}>+{fmtSGD(totalGain)}</span>
+                    </div>
+                    <div className="flex flex-col gap-0.5">
+                      {topContribs.map((h, i) => (
+                        <div key={h.id} className="relative flex items-center gap-3 px-3 py-2 rounded-lg overflow-hidden">
+                          <div className="absolute inset-0 rounded-lg" style={{ width: (h.pnl / maxContrib * 100) + '%', background:'rgba(52,211,153,0.07)', pointerEvents:'none' }} />
+                          <span className="relative text-[11px] w-3.5 text-right flex-shrink-0" style={{ color:'#6b6057', fontFamily:'Inter,sans-serif' }}>{i+1}</span>
+                          <div className="relative flex-1 min-w-0">
+                            <p className="text-sm font-semibold truncate leading-tight" style={{ color:'#e8e3db', fontFamily:'Inter,sans-serif' }}>{h.ticker}</p>
+                            {h.name && <p className="text-xs truncate leading-tight mt-0.5" style={{ color:'#6b6057', fontFamily:'Inter,sans-serif' }}>{h.name}</p>}
+                          </div>
+                          <div className="relative text-right flex-shrink-0">
+                            <p className="text-sm font-semibold tabular-nums" style={{ color:'#34d399', fontFamily:'Inter,sans-serif' }}>+{fmtSGD(h.pnl)}</p>
+                            {totalGain > 0 && <p className="text-[11px]" style={{ color:'#6b6057', fontFamily:'Inter,sans-serif' }}>{(h.pnl/totalGain*100).toFixed(0)}% of gains</p>}
+                          </div>
+                        </div>
+                      ))}
+                      {topContribs.length === 0 && <p className="text-xs text-center py-4" style={{ color:'#6b6057', fontFamily:'Inter,sans-serif' }}>No gains yet</p>}
+                    </div>
+                  </div>
+                  {/* Detractors */}
+                  <div className="p-3" style={{ borderLeft:'1px solid rgba(255,255,255,0.04)' }}>
+                    <div className="flex items-center justify-between mb-1.5 px-1">
+                      <span className="text-[10px] font-bold uppercase tracking-[0.08em]" style={{ color:'#9a9088', fontFamily:'Inter,sans-serif' }}>Top Detractors</span>
+                      <span className="text-xs font-semibold tabular-nums" style={{ color:'#f87171', fontFamily:'Inter,sans-serif' }}>−{fmtSGD(totalLoss)}</span>
+                    </div>
+                    <div className="flex flex-col gap-0.5">
+                      {topDetractors.map((h, i) => (
+                        <div key={h.id} className="relative flex items-center gap-3 px-3 py-2 rounded-lg overflow-hidden">
+                          <div className="absolute inset-0 rounded-lg" style={{ width: (Math.abs(h.pnl) / maxDetract * 100) + '%', background:'rgba(248,113,113,0.07)', pointerEvents:'none' }} />
+                          <span className="relative text-[11px] w-3.5 text-right flex-shrink-0" style={{ color:'#6b6057', fontFamily:'Inter,sans-serif' }}>{i+1}</span>
+                          <div className="relative flex-1 min-w-0">
+                            <p className="text-sm font-semibold truncate leading-tight" style={{ color:'#e8e3db', fontFamily:'Inter,sans-serif' }}>{h.ticker}</p>
+                            {h.name && <p className="text-xs truncate leading-tight mt-0.5" style={{ color:'#6b6057', fontFamily:'Inter,sans-serif' }}>{h.name}</p>}
+                          </div>
+                          <div className="relative text-right flex-shrink-0">
+                            <p className="text-sm font-semibold tabular-nums" style={{ color:'#f87171', fontFamily:'Inter,sans-serif' }}>−{fmtSGD(Math.abs(h.pnl))}</p>
+                            {totalLoss > 0 && <p className="text-[11px]" style={{ color:'#6b6057', fontFamily:'Inter,sans-serif' }}>{(Math.abs(h.pnl)/totalLoss*100).toFixed(0)}% of losses</p>}
+                          </div>
+                        </div>
+                      ))}
+                      {topDetractors.length === 0 && <p className="text-xs text-center py-4" style={{ color:'#6b6057', fontFamily:'Inter,sans-serif' }}>No losers</p>}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-6 px-5 py-3" style={{ borderTop:'1px solid rgba(255,255,255,0.04)' }}>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.08em] font-bold" style={{ color:'#9a9088', fontFamily:'Inter,sans-serif' }}>Unrealised Gain</p>
+                    <p className="text-sm font-semibold tabular-nums mt-0.5" style={{ color: totalPnl >= 0 ? '#34d399' : '#f87171', fontFamily:'Inter,sans-serif' }}>{totalPnl >= 0 ? '+' : ''}{fmtSGD(totalPnl)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.08em] font-bold" style={{ color:'#9a9088', fontFamily:'Inter,sans-serif' }}>On Cost</p>
+                    <p className="text-sm font-semibold mt-0.5" style={{ color: totalPnlPct >= 0 ? '#34d399' : '#f87171', fontFamily:'Inter,sans-serif' }}>{totalPnlPct >= 0 ? '+' : ''}{totalPnlPct.toFixed(1)}%</p>
+                  </div>
+                  <div className="ml-auto text-right">
+                    <p className="text-[10px] uppercase tracking-[0.08em] font-bold" style={{ color:'#9a9088', fontFamily:'Inter,sans-serif' }}>Positions Shown</p>
+                    <p className="text-sm font-semibold mt-0.5" style={{ color:'#e8e3db', fontFamily:'Inter,sans-serif' }}>{topContribs.length + topDetractors.length} of {enriched.length}</p>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Portfolio Allocation */}
-      {enriched.length > 0 && (
-        <div className="card !p-0 overflow-hidden">
-          <button onClick={() => toggleSection('allocation')} className="w-full px-5 py-4 border-b border-stone-800 flex items-center justify-between hover:bg-stone-800/30 transition-colors">
-            <h2 className="text-sm font-semibold text-stone-100">Portfolio Allocation</h2>
-            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"
-              style={{ transform: collapsed.has('allocation') ? 'rotate(-90deg)' : '', transition:'transform 0.2s', color:'#6b6057' }}>
-              <path d="M6 9l6 6 6-6"/>
-            </svg>
-          </button>
-          {!collapsed.has('allocation') && (
-            <div className="p-5">
-              <div className="flex gap-1 mb-5 bg-stone-800/50 rounded-lg p-1 w-fit">
+      {enriched.length > 0 && (() => {
+        const allocColors = allocData.map(({ label }) =>
+          allocTab === 'category' ? (CAT_COLORS[label] || '#6b7280')
+          : allocTab === 'geography' ? (GEO_COLORS[label] || '#6b7280')
+          : '#7a6eb8'
+        );
+        // SVG donut chart
+        const size = 200, thickness = 34, r = (size - thickness) / 2, circ = 2 * Math.PI * r;
+        let cum = 0;
+        const donutSegments = allocData.map(({ value, label }, i) => {
+          const pct = totalValue > 0 ? value / totalValue : 0;
+          const len = pct * circ;
+          const gap = allocData.length > 1 ? 2 : 0;
+          const seg = { color: allocColors[i], len, offset: circ * 0.25 - cum, dash: `${Math.max(len - gap, 0)} ${circ}`, key: label };
+          cum += len;
+          return seg;
+        });
+        return (
+          <div className="card !p-0 overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3.5 cursor-pointer hover:bg-stone-800/20 transition-colors select-none"
+              style={{ borderBottom:'1px solid rgba(255,255,255,0.05)' }}
+              onClick={() => toggleSection('allocation')}>
+              <div className="flex items-center gap-3 min-w-0">
+                <svg width="14" height="14" fill="none" stroke="#9a9088" strokeWidth="2.5" viewBox="0 0 24 24"
+                  className="flex-shrink-0 transition-transform duration-200"
+                  style={{ transform: collapsed.has('allocation') ? 'rotate(0deg)' : 'rotate(90deg)' }}>
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+                <div>
+                  <h2 style={{ fontFamily:"'Lora',Georgia,serif", fontWeight:400, fontSize:'0.9375rem', color:'#c4bdb4' }}>Portfolio Allocation</h2>
+                  <p className="text-[12px] mt-0.5" style={{ color:'#9a9088', fontFamily:'Inter,sans-serif' }}>Investments only · excludes cash, CPF &amp; loans</p>
+                </div>
+              </div>
+              <div className="flex-shrink-0 flex gap-[3px] rounded-lg p-[3px] ml-3" style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)' }}
+                onClick={e => e.stopPropagation()}>
                 {['category','type','geography'].map(tab => (
                   <button key={tab} onClick={() => setAllocTab(tab)}
-                    className={`text-xs px-3 py-1.5 rounded-md transition-colors capitalize ${allocTab === tab ? 'bg-stone-700 text-stone-100' : 'text-stone-500 hover:text-stone-300'}`}>
+                    className="rounded-[5px] text-[11px] font-sans transition-all whitespace-nowrap capitalize"
+                    style={{
+                      padding:'7px 12px', lineHeight:1,
+                      background: allocTab === tab ? 'rgba(212,160,82,0.15)' : 'transparent',
+                      border: allocTab === tab ? '1px solid rgba(212,160,82,0.3)' : '1px solid transparent',
+                      color: allocTab === tab ? '#d4a052' : '#7a7068',
+                      cursor: 'pointer',
+                    }}>
                     {tab}
                   </button>
                 ))}
               </div>
-              <div className="space-y-3">
-                {allocData.map(({ label, value, pct }) => {
-                  const color = allocTab === 'category' ? (CAT_COLORS[label] || '#6b7280')
-                    : allocTab === 'geography' ? (GEO_COLORS[label] || '#6b7280')
-                    : '#7a6eb8';
-                  return (
-                    <div key={label}>
-                      <div className="flex items-center justify-between text-xs mb-1.5">
-                        <div className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: color }} />
-                          <span className="font-medium text-stone-200">{label}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-stone-500 tabular-nums">{fmtSGD(value)}</span>
-                          <span className="font-semibold tabular-nums" style={{ color }}>{pct.toFixed(1)}%</span>
-                        </div>
-                      </div>
-                      <div className="h-1.5 bg-stone-800 rounded-full overflow-hidden">
-                        <div className="h-full rounded-full transition-all duration-500" style={{ width: Math.min(pct, 100) + '%', background: color, opacity: 0.75 }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
             </div>
-          )}
-        </div>
-      )}
+            {!collapsed.has('allocation') && (
+              <div className="px-5 pb-5 pt-4">
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-10">
+                  {/* Donut */}
+                  <div className="relative flex-shrink-0">
+                    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+                      {totalValue > 0 ? donutSegments.map(s => (
+                        <circle key={s.key} cx={size/2} cy={size/2} r={r}
+                          fill="none" stroke={s.color} strokeWidth={thickness} strokeOpacity={0.88}
+                          strokeDasharray={s.dash} strokeDashoffset={s.offset} />
+                      )) : (
+                        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={thickness} />
+                      )}
+                    </svg>
+                    <div className="absolute pointer-events-none text-center" style={{ top:'50%', left:'50%', transform:'translate(-50%,-50%)', width:'100px' }}>
+                      <p className="font-semibold tabular-nums" style={{ color:'#e8e3db', fontFamily:'Inter,sans-serif', fontSize:'15px', lineHeight:1.2 }}>{fmtSGD(totalValue)}</p>
+                    </div>
+                  </div>
+                  {/* Divider */}
+                  <div className="hidden sm:block w-px self-stretch" style={{ background:'rgba(255,255,255,0.05)', margin:'8px 0' }} />
+                  {/* Legend */}
+                  <div className="flex flex-col gap-[3px] w-full sm:w-auto">
+                    {allocData.map(({ label, value, pct }, i) => (
+                      <div key={label} className="flex items-center rounded-[7px] transition-all duration-150"
+                        style={{ gap:'10px', padding:'7px 10px', background:'transparent', cursor:'pointer' }}>
+                        <span className="flex-shrink-0 rounded-full" style={{ width:8, height:8, background:allocColors[i], boxShadow:`${allocColors[i]}55 0 0 4px` }} />
+                        <span className="text-[14px]" style={{ color:'#c4bdb4', fontFamily:'Inter,sans-serif', width:130, flexShrink:0 }}>{label}</span>
+                        <span className="text-[13px] tabular-nums" style={{ color:'#7a7068', fontFamily:'Inter,sans-serif', width:52, textAlign:'right', flexShrink:0 }}>{pct.toFixed(1)}%</span>
+                        <span className="text-[13px] tabular-nums" style={{ color:'#8a7d6b', fontFamily:'Inter,sans-serif', width:110, textAlign:'right', flexShrink:0 }}>{fmtSGD(value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       <HoldingModal open={showHoldingModal} onClose={() => setShowHoldingModal(false)} holding={editHolding} onSave={saveHolding} />
       <TransactionModal open={showTxnModal} onClose={() => setShowTxnModal(false)} holding={txnHolding} editTxn={editTxn} onSave={saveTxn} />
