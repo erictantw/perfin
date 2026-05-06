@@ -116,6 +116,26 @@ function GlowRing() {
 
 function NetWorthNumber({ netWorth, totalCash, totalInv, totalCPF, totalLoans, FX_USD }) {
   const [hovered, setHovered] = React.useState(false);
+  const [displayValue, setDisplayValue] = React.useState(0);
+  const prevRef = React.useRef(0);
+
+  React.useEffect(() => {
+    const start = prevRef.current;
+    const end = netWorth;
+    prevRef.current = end;
+    const duration = 1000;
+    const t0 = performance.now();
+    function ease(t) { return 1 - Math.pow(1 - t, 3); }
+    let raf;
+    function step(now) {
+      const p = Math.min((now - t0) / duration, 1);
+      setDisplayValue(start + (end - start) * ease(p));
+      if (p < 1) raf = requestAnimationFrame(step);
+    }
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [netWorth]);
+
   return (
     <div style={{ position:'relative', display:'inline-block' }}
       onMouseEnter={()=>setHovered(true)} onMouseLeave={()=>setHovered(false)}>
@@ -129,7 +149,7 @@ function NetWorthNumber({ netWorth, totalCash, totalInv, totalCPF, totalLoans, F
           ? '0 0 40px rgba(74,158,122,0.3), 0 0 80px rgba(74,158,122,0.12)'
           : '0 0 40px rgba(248,113,113,0.3), 0 0 80px rgba(248,113,113,0.12)',
       }}>
-        {netWorth < 0 ? '–' : ''}{fmtSGD(Math.abs(netWorth))}
+        {displayValue < 0 ? '–' : ''}{fmtSGD(Math.abs(displayValue))}
       </p>
       {hovered && (
         <div style={{
@@ -298,6 +318,10 @@ function OverviewPage() {
   const refresh = () => setTick(t => t + 1);
   const [showCashModal, setShowCashModal] = React.useState(false);
   const [cashForm, setCashForm] = React.useState({ account_name:'', balance:'', currency:'SGD', category:'Savings' });
+  const [includeLoans, setIncludeLoans] = React.useState(() => {
+    const stored = localStorage.getItem('wf_nw_include_loans');
+    return stored === null ? true : JSON.parse(stored);
+  });
 
   const FX_USD = 1.34;
   const profile = db.get('profile', { name:'Alex', allocation_targets:null });
@@ -313,7 +337,7 @@ function OverviewPage() {
   }, 0);
   const totalCPF   = (cpf.oa||0)+(cpf.sa||0)+(cpf.ma||0)+(cpf.ra||0)+(cpf.srs||0);
   const totalLoans = loans.reduce((s,l) => s+(l.outstanding_balance||0), 0);
-  const netWorth   = totalCash + totalInv + totalCPF - totalLoans;
+  const netWorth   = totalCash + totalInv + totalCPF - (includeLoans ? totalLoans : 0);
 
   const targets = profile.allocation_targets ? JSON.parse(profile.allocation_targets) : { Cash:15, Investments:50, CPF:30, Properties:5 };
   const actual  = { Cash:totalCash, Investments:totalInv, CPF:totalCPF, Properties:0 };
@@ -495,6 +519,22 @@ function OverviewPage() {
               </div>
             ))}
           </div>
+
+          {/* Loans toggle */}
+          {totalLoans > 0 && (
+            <div style={{ marginTop:12, paddingTop:10, borderTop:'1px solid rgba(255,255,255,0.05)', display:'flex', alignItems:'center', gap:8 }}>
+              <input
+                type="checkbox"
+                id="wf-include-loans"
+                checked={includeLoans}
+                onChange={e => { setIncludeLoans(e.target.checked); localStorage.setItem('wf_nw_include_loans', JSON.stringify(e.target.checked)); }}
+                style={{ width:13, height:13, cursor:'pointer', accentColor:'#4a9e7a', flexShrink:0 }}
+              />
+              <label htmlFor="wf-include-loans" style={{ fontSize:'0.68rem', color:'#6b6057', fontFamily:'Inter,sans-serif', cursor:'pointer', userSelect:'none' }}>
+                Include loans & liabilities
+              </label>
+            </div>
+          )}
         </div>
       </div>
 
