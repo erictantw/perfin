@@ -3145,15 +3145,48 @@ Object.assign(window, { SRSTab });
 
 // ─── Investments Page ─────────────────────────────────────────────────────────
 
-const INV_FX = { USD:1.34, SGD:1, GBP:1.70, EUR:1.46, HKD:0.17, AUD:0.88 };
+const INV_FX = { USD:1.34, SGD:1, GBP:1.70, EUR:1.46, HKD:0.17, AUD:0.88, CNY:0.19, JPY:0.009, MYR:0.30, PHP:0.024 };
 const INV_PLATFORMS = ['FSMOne','Syfe','StashAway','Tiger Brokers','IBKR','DBS Vickers','Moomoo','Other'];
-const INV_CURRENCIES = ['USD','SGD','GBP','EUR','HKD','AUD'];
+const INV_CURRENCIES = ['AUD','CNY','EUR','GBP','HKD','JPY','MYR','PHP','SGD','USD'];
 const INV_ASSET_TYPES = ['ETF','Stock','REIT','Bond','Fund','Crypto','Other'];
-const INV_CATEGORIES = ['Growth','Income','Legacy','Retirement'];
-const INV_TYPES = ['Active','Dividends','Education','Fixed','Index','SRS','Speculative'];
+const INV_CATEGORIES = ['Cash','Growth','Income','Legacy','Retirement'];
+const INV_TYPES = ['Active','Cash','Dividends','Education','Fixed','Index','SRS','Speculative'];
 const INV_GEOS = ['Global','US','SG','UK','EU','Asia','EM','Other'];
-const CAT_COLORS = { Growth:'#d4a052', Income:'#4a9e7a', Legacy:'#7a6eb8', Retirement:'#5b8fba' };
+const CAT_COLORS = { Cash:'#5a7e9e', Growth:'#d4a052', Income:'#4a9e7a', Legacy:'#7a6eb8', Retirement:'#5b8fba' };
 const GEO_COLORS = { Global:'#d4a052', US:'#4a9e7a', SG:'#7a6eb8', UK:'#5b8fba', EU:'#c4564a', Asia:'#8b9e6a', EM:'#6a9e7a', Other:'#5a6a7a' };
+
+const HOLDING_CATS = [
+  { id: 'Cash',       color: '#5a7e9e', subtitle: 'Buffer · Planned · Reserves', types: [] },
+  { id: 'Growth',     color: '#d4a052', subtitle: 'Active · Index · Speculative',
+    types: [
+      { id: 'Active',      desc: 'Individual stock picks, thematic bets, or actively managed positions.' },
+      { id: 'Index',       desc: 'Passive index ETFs — set-and-forget, long horizon (e.g. VWRA, IWDA, VOO).' },
+      { id: 'Speculative', desc: 'High-risk, high-volatility positions — crypto, options, early-stage.' },
+    ]
+  },
+  { id: 'Income',     color: '#5a9e8b', subtitle: 'Dividends · Fixed',
+    types: [
+      { id: 'Dividends', desc: 'Individual dividend stocks or dividend-focused ETFs.' },
+      { id: 'Fixed',     desc: 'Bonds, fixed deposits, T-bills, or SSBs.' },
+    ]
+  },
+  { id: 'Legacy',     color: '#9e7e5a', subtitle: 'Education',
+    types: [{ id: 'Education', desc: 'Savings or investments earmarked for education.' }]
+  },
+  { id: 'Retirement', color: '#6b7e9e', subtitle: 'SRS',
+    types: [{ id: 'SRS', desc: 'Investments held within your Supplementary Retirement Scheme account.' }]
+  },
+];
+
+function inferGeoFromTicker(ticker) {
+  if (!ticker) return '';
+  const t = ticker.toUpperCase();
+  if (t.endsWith('.SI')) return 'SG';
+  if (t.endsWith('.L') || t.endsWith('.IL')) return 'UK';
+  if (t.endsWith('.AX') || t.endsWith('.KL') || t.endsWith('.HK') || t.endsWith('.SS') || t.endsWith('.SZ') || t.endsWith('.T')) return 'Asia';
+  if (['VWRA','IWDA','VWRD','CSPX','SWRD','AGGG'].includes(t.split('.')[0])) return 'Global';
+  return '';
+}
 
 function invToSGD(amount, ccy) { return amount * (INV_FX[ccy] || 1); }
 
@@ -3218,42 +3251,316 @@ function LatestPriceInput({ holding, onSave }) {
   );
 }
 
-function HoldingModal({ open, onClose, holding, onSave }) {
-  const empty = { ticker:'', name:'', currency:'USD', asset_type:'ETF', platform:'IBKR', exchange:'', category:'Growth', investment_type:'Index', geography:'Global', latest_price:'' };
-  const [form, setForm] = React.useState(empty);
-  const setF = f => e => setForm(p => ({...p, [f]: e.target.value}));
+function TickerSearch({ value, onSelect }) {
+  const [query, setQuery] = React.useState('');
+  const [results, setResults] = React.useState([]);
+  const [open, setOpen] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
+  const timer = React.useRef(null);
+  const wrapRef = React.useRef(null);
+
+  React.useEffect(() => { setQuery(value || ''); }, [value]);
+
+  function handleInput(e) {
+    const q = e.target.value;
+    setQuery(q);
+    onSelect({ ticker: q.toUpperCase(), name: '', currency: null, geography: null });
+    clearTimeout(timer.current);
+    if (q.length < 2) { setResults([]); setOpen(false); return; }
+    timer.current = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const url = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(q)}&quotesCount=8&newsCount=0`;
+        const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+        const res = await fetch(proxy);
+        const json = await res.json();
+        const data = JSON.parse(json.contents);
+        const quotes = (data?.quotes || []).filter(r => r.symbol && r.quoteType !== 'OPTION');
+        setResults(quotes.slice(0, 8));
+        setOpen(quotes.length > 0);
+      } catch { setResults([]); setOpen(false); }
+      setLoading(false);
+    }, 350);
+  }
+
+  function pick(r) {
+    setQuery(r.symbol);
+    setResults([]); setOpen(false);
+    const sym = r.symbol.toLowerCase();
+    const ccy = r.currency || (sym.endsWith('.l') ? 'GBP' : sym.endsWith('.si') ? 'SGD' : sym.endsWith('.ax') ? 'AUD' : sym.endsWith('.kl') ? 'MYR' : sym.endsWith('.hk') ? 'HKD' : 'USD');
+    onSelect({ ticker: r.symbol, name: r.longname || r.shortname || '', currency: ccy, geography: inferGeoFromTicker(r.symbol) });
+  }
 
   React.useEffect(() => {
-    if (open) setForm(holding ? { ticker:holding.ticker||'', name:holding.name||'', currency:holding.currency||'USD', asset_type:holding.asset_type||'ETF', platform:holding.platform||'IBKR', exchange:holding.exchange||'', category:holding.category||'Growth', investment_type:holding.investment_type||'Index', geography:holding.geography||'Global', latest_price:holding.latest_price||'' } : empty);
+    function handler(e) { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const iStyle = { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#e8e3db', fontFamily: 'Inter,sans-serif' };
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <div className="relative">
+        <input type="text" value={query} onChange={handleInput} onFocus={() => results.length && setOpen(true)}
+          placeholder="Search ticker or company name…" autoComplete="off"
+          className="w-full rounded-lg px-3 py-2.5 text-sm outline-none transition-colors"
+          style={iStyle}
+        />
+        {loading && (
+          <span className="absolute right-3 top-1/2 -translate-y-1/2">
+            <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"
+              style={{ animation: 'spin 1s linear infinite', color: '#6b6057' }}>
+              <path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+            </svg>
+          </span>
+        )}
+      </div>
+      <p className="mt-1.5 text-[11px]" style={{ color: '#4a4540', fontFamily: 'Inter,sans-serif' }}>
+        e.g. <span style={{ color: '#6b6057' }}>AAPL</span> · <span style={{ color: '#6b6057' }}>D05.SI</span> · <span style={{ color: '#6b6057' }}>BP.L</span> · <span style={{ color: '#6b6057' }}>VWRA.L</span> · <span style={{ color: '#6b6057' }}>BTC-USD</span>
+      </p>
+      {open && results.length > 0 && (
+        <div className="absolute z-[60] w-full mt-1 rounded-xl overflow-hidden shadow-2xl" style={{ background: '#211e1a', border: '1px solid rgba(255,255,255,0.08)' }}>
+          {results.map(r => (
+            <button key={r.symbol} type="button" onClick={() => pick(r)}
+              className="w-full text-left px-3 py-2.5 flex items-center gap-3 hover:bg-white/5 transition-colors"
+              style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium" style={{ color: '#e8e3db', fontFamily: 'Inter,sans-serif' }}>{r.symbol}</p>
+                <p className="text-xs truncate" style={{ color: '#6b6057', fontFamily: 'Inter,sans-serif' }}>{r.longname || r.shortname}</p>
+              </div>
+              <span className="text-[10px] shrink-0 px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.05)', color: '#6b6057', fontFamily: 'Inter,sans-serif' }}>{r.exchDisp || r.exchange}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HoldingModal({ open, onClose, holding, onSave }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const [step, setStep] = React.useState(1);
+  const [catId, setCatId] = React.useState('');
+  const [typeId, setTypeId] = React.useState('');
+  const [form, setForm] = React.useState({ ticker:'', name:'', currency:'USD', price:'', units:'', fee:'', platform:'', geography:'', date:today, amount:'' });
+  const setF = k => e => setForm(p => ({ ...p, [k]: typeof e === 'string' ? e : e.target.value }));
+
+  const cat = HOLDING_CATS.find(c => c.id === catId);
+
+  React.useEffect(() => {
+    if (!open) return;
+    if (holding) {
+      setCatId(holding.category || 'Growth');
+      setTypeId(holding.investment_type || '');
+      setForm({
+        ticker: holding.ticker || '',
+        name: holding.name || '',
+        currency: holding.currency || 'USD',
+        price: String(holding.avg_cost || ''),
+        units: String(holding.units || ''),
+        fee: '',
+        platform: holding.platform || '',
+        geography: holding.geography || '',
+        date: holding.purchase_date || today,
+        amount: String(holding.avg_cost || ''),
+      });
+      setStep(2);
+    } else {
+      setCatId(''); setTypeId('');
+      setForm({ ticker:'', name:'', currency:'USD', price:'', units:'', fee:'', platform:'', geography:'', date:today, amount:'' });
+      setStep(1);
+    }
   }, [open]);
 
-  function submit(e) { e.preventDefault(); onSave(form); onClose(); }
+  function selectCat(id) {
+    setCatId(id);
+    const c = HOLDING_CATS.find(x => x.id === id);
+    setTypeId(c?.types.length === 1 ? c.types[0].id : '');
+    setStep(2);
+  }
+
+  function submit(e) {
+    e.preventDefault();
+    if (catId === 'Cash') {
+      onSave({ ticker: form.name || 'CASH', name: form.name, currency: form.currency, units: 1, avg_cost: parseFloat(form.amount) || 0, category: 'Cash', investment_type: 'Cash', platform: form.platform, purchase_date: form.date, geography: 'SG', asset_type: 'Cash' });
+    } else {
+      const geo = form.geography || inferGeoFromTicker(form.ticker);
+      onSave({
+        ticker: form.ticker.toUpperCase(), name: form.name, currency: form.currency,
+        avg_cost: parseFloat(form.price) || 0, units: parseFloat(form.units) || 0,
+        category: catId, investment_type: typeId, platform: form.platform,
+        geography: geo, purchase_date: form.date, asset_type: 'ETF',
+        _firstTxn: { date: form.date, type: 'buy', units: parseFloat(form.units) || 0, price: parseFloat(form.price) || 0, fee: parseFloat(form.fee) || 0, platform: form.platform },
+      });
+    }
+    onClose();
+  }
+
+  const ms = { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#e8e3db', fontFamily: 'Inter,sans-serif' };
+  const ml = { display:'block', fontSize:'0.65rem', textTransform:'uppercase', letterSpacing:'0.1em', color:'#8a7d6b', fontFamily:'Inter,sans-serif', marginBottom:'6px' };
+
   return (
-    <Modal open={open} onClose={onClose} title={holding ? 'Edit Holding' : 'Add Holding'}>
-      <form onSubmit={submit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Ticker *"><Input required value={form.ticker} onChange={setF('ticker')} placeholder="e.g. VWRA" className="uppercase" /></Field>
-          <Field label="Name"><Input value={form.name} onChange={setF('name')} placeholder="e.g. Vanguard All-World" /></Field>
+    <Modal open={open} onClose={onClose} title="Add Holding">
+      {step === 1 ? (
+        <div className="flex flex-col gap-4">
+          <div>
+            <p style={ml}>What are you adding?</p>
+            <div className="grid grid-cols-2 gap-2 mt-1">
+              {HOLDING_CATS.map(c => (
+                <button type="button" key={c.id} onClick={() => selectCat(c.id)}
+                  className="text-left p-3 rounded-xl border transition-all hover:scale-[1.01]"
+                  style={{ borderColor: c.color + '33', background: c.color + '0f' }}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: c.color }} />
+                    <span className="text-sm font-medium" style={{ color: c.color, fontFamily: 'Inter,sans-serif' }}>{c.id}</span>
+                  </div>
+                  <p className="text-xs leading-relaxed" style={{ color: '#6b6057', fontFamily: 'Inter,sans-serif' }}>{c.subtitle}</p>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-        <div className="grid grid-cols-3 gap-3">
-          <Field label="Currency"><Select value={form.currency} onChange={setF('currency')}>{INV_CURRENCIES.map(c => <option key={c}>{c}</option>)}</Select></Field>
-          <Field label="Asset type"><Select value={form.asset_type} onChange={setF('asset_type')}>{INV_ASSET_TYPES.map(t => <option key={t}>{t}</option>)}</Select></Field>
-          <Field label="Exchange"><Input value={form.exchange} onChange={setF('exchange')} placeholder="e.g. LSE" /></Field>
-        </div>
-        <div className="grid grid-cols-3 gap-3">
-          <Field label="Category"><Select value={form.category} onChange={setF('category')}>{INV_CATEGORIES.map(c => <option key={c}>{c}</option>)}</Select></Field>
-          <Field label="Type"><Select value={form.investment_type} onChange={setF('investment_type')}>{INV_TYPES.map(t => <option key={t}>{t}</option>)}</Select></Field>
-          <Field label="Geography"><Select value={form.geography} onChange={setF('geography')}>{INV_GEOS.map(g => <option key={g}>{g}</option>)}</Select></Field>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Platform"><Select value={form.platform} onChange={setF('platform')}>{INV_PLATFORMS.map(p => <option key={p}>{p}</option>)}</Select></Field>
-          <Field label="Latest price (manual)"><Input type="number" step="any" min="0" value={form.latest_price} onChange={setF('latest_price')} placeholder="Leave blank → avg cost" /></Field>
-        </div>
-        <div className="flex gap-3 pt-2">
-          <button type="button" onClick={onClose} className="flex-1 py-2 rounded-lg border border-stone-700 text-stone-300 text-sm hover:bg-stone-800 transition-colors">Cancel</button>
-          <button type="submit" className="flex-1 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium transition-colors">{holding ? 'Update' : 'Add'}</button>
-        </div>
-      </form>
+      ) : (
+        <form onSubmit={submit} className="flex flex-col gap-4">
+          {/* Category badge + Back */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {cat && <span className="w-2 h-2 rounded-full" style={{ background: cat.color }} />}
+              <span className="text-sm font-medium" style={{ color: cat?.color, fontFamily: 'Inter,sans-serif' }}>{catId}</span>
+            </div>
+            {!holding && <button type="button" onClick={() => setStep(1)} className="text-xs transition-colors hover:text-[#d4a052]" style={{ color: '#6b6057', fontFamily: 'Inter,sans-serif' }}>← Back</button>}
+          </div>
+
+          {/* Type selection */}
+          {catId !== 'Cash' && cat && cat.types.length > 0 && (
+            <div>
+              <p style={ml}>Type</p>
+              <div className="flex flex-col gap-2">
+                {cat.types.map(t => (
+                  <button key={t.id} type="button" onClick={() => setTypeId(t.id)}
+                    className="text-left p-3 rounded-xl border transition-all"
+                    style={{ borderColor: typeId === t.id ? (cat.color + '80') : (cat.color + '22'), background: typeId === t.id ? (cat.color + '1a') : (cat.color + '08') }}>
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="text-sm font-medium" style={{ color: typeId === t.id ? cat.color : '#b8b0a8', fontFamily: 'Inter,sans-serif' }}>{t.id}</span>
+                      {typeId === t.id && <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" style={{ color: cat.color }}><polyline points="20 6 9 17 4 12"/></svg>}
+                    </div>
+                    <p className="text-xs leading-relaxed" style={{ color: '#7a7068', fontFamily: 'Inter,sans-serif' }}>{t.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Cash fields */}
+          {catId === 'Cash' && (
+            <>
+              <div>
+                <label style={ml}>Label / Name</label>
+                <input type="text" value={form.name} onChange={setF('name')} placeholder="e.g. Emergency Fund, DBS Savings" required
+                  className="w-full rounded-lg px-3 py-2.5 text-sm outline-none" style={ms} />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label style={ml}>Currency</label>
+                  <select value={form.currency} onChange={setF('currency')} className="w-full rounded-lg px-3 py-2.5 text-sm outline-none cursor-pointer" style={ms}>
+                    {INV_CURRENCIES.map(c => <option key={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div className="col-span-2">
+                  <label style={ml}>Amount</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs" style={{ color: '#7a7068', fontFamily: 'Inter,sans-serif' }}>{form.currency}</span>
+                    <input type="number" min="0" step="any" value={form.amount} onChange={setF('amount')} placeholder="0.00" required
+                      className="w-full rounded-lg pl-12 pr-3 py-2.5 text-sm outline-none" style={ms} />
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Non-Cash fields */}
+          {catId !== 'Cash' && (
+            <>
+              <div>
+                <label style={ml}>Counter / Ticker</label>
+                <TickerSearch value={form.ticker} onSelect={sel => {
+                  setForm(p => ({ ...p, ticker: sel.ticker, name: sel.name || p.name, ...(sel.currency ? { currency: sel.currency } : {}), ...(sel.geography ? { geography: sel.geography } : {}) }));
+                }} />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label style={ml}>Currency</label>
+                  <select value={form.currency} onChange={setF('currency')} className="w-full rounded-lg px-3 py-2.5 text-sm outline-none cursor-pointer" style={ms}>
+                    {INV_CURRENCIES.map(c => <option key={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div className="col-span-2">
+                  <label style={ml}>Price per Unit</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs" style={{ color: '#7a7068', fontFamily: 'Inter,sans-serif' }}>{form.currency}</span>
+                    <input type="number" min="0" step="any" value={form.price} onChange={setF('price')} placeholder="e.g. 35.50" required
+                      className="w-full rounded-lg pl-12 pr-3 py-2.5 text-sm outline-none" style={ms} />
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label style={ml}>Units</label>
+                <input type="number" min="0" step="any" value={form.units} onChange={setF('units')} placeholder="e.g. 100" required
+                  className="w-full rounded-lg px-3 py-2.5 text-sm outline-none" style={ms} />
+              </div>
+              <div>
+                <label style={ml}>Commission / Fee <span style={{ textTransform:'none', letterSpacing:'normal', color:'#7a7068' }}>(optional)</span></label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs" style={{ color: '#7a7068', fontFamily: 'Inter,sans-serif' }}>SGD</span>
+                  <input type="number" min="0" step="any" value={form.fee} onChange={setF('fee')} placeholder="0.00"
+                    className="w-full rounded-lg pl-12 pr-3 py-2.5 text-sm outline-none" style={ms} />
+                </div>
+              </div>
+            </>
+          )}
+
+          <div>
+            <label style={ml}>Platform</label>
+            <input type="text" value={form.platform} onChange={setF('platform')} placeholder="e.g. IBKR, Moomoo, DBS Vickers"
+              className="w-full rounded-lg px-3 py-2.5 text-sm outline-none" style={ms} />
+          </div>
+
+          {catId !== 'Cash' && (
+            <div>
+              <label style={ml}>Geography <span style={{ textTransform:'none', letterSpacing:'normal', color:'#7a7068' }}>(optional)</span></label>
+              <select value={form.geography} onChange={setF('geography')} className="w-full rounded-lg px-3 py-2.5 text-sm outline-none cursor-pointer" style={ms}>
+                <option value="">— Infer from ticker —</option>
+                {INV_GEOS.map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
+            </div>
+          )}
+
+          <div>
+            <label style={ml}>Transaction Date</label>
+            <input type="date" value={form.date} onChange={setF('date')} max={today}
+              className="w-full rounded-lg px-3 py-2.5 text-sm outline-none" style={{ ...ms, colorScheme: 'dark' }} />
+          </div>
+
+          {catId !== 'Cash' && parseFloat(form.price) > 0 && parseFloat(form.units) > 0 && (
+            <div className="rounded-lg px-3 py-2 text-xs" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', fontFamily: 'Inter,sans-serif' }}>
+              <span style={{ color: '#8a7d6b' }}>Total: </span>
+              <span style={{ color: '#e8e3db' }}>{form.currency} {fmtNum(parseFloat(form.price) * parseFloat(form.units) + (parseFloat(form.fee) || 0), 2)}</span>
+              {form.currency !== 'SGD' && <span style={{ color: '#6b6057' }}> · SGD {fmtNum(invToSGD(parseFloat(form.price) * parseFloat(form.units) + (parseFloat(form.fee) || 0), form.currency), 2)}</span>}
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-lg text-sm transition-colors"
+              style={{ border: '1px solid rgba(255,255,255,0.1)', color: '#8a7d6b', fontFamily: 'Inter,sans-serif' }}>Cancel</button>
+            <button type="submit" disabled={catId !== 'Cash' && !typeId}
+              className="flex-1 py-2.5 rounded-lg text-sm font-semibold disabled:opacity-40 transition-opacity"
+              style={{ background: 'linear-gradient(to right, #d4a052, #a07840)', color: '#1a1714', fontFamily: 'Inter,sans-serif' }}>
+              {holding ? 'Update Holding' : 'Add Holding'}
+            </button>
+          </div>
+        </form>
+      )}
     </Modal>
   );
 }
@@ -3389,10 +3696,12 @@ function InvestmentsPage() {
 
   function saveHolding(form) {
     const list = db.get('holdings', []);
+    const { _firstTxn, ...holdingData } = form;
     if (editHolding) {
-      db.set('holdings', list.map(h => h.id === editHolding.id ? { ...h, ...form } : h));
+      db.set('holdings', list.map(h => h.id === editHolding.id ? { ...h, ...holdingData } : h));
     } else {
-      list.push({ id: db.nextId('holdings'), ...form, transactions: [] });
+      const txns = _firstTxn ? [{ id: Date.now(), ..._firstTxn }] : [];
+      list.push({ id: db.nextId('holdings'), ...holdingData, transactions: txns });
       db.set('holdings', list);
     }
     refresh();
@@ -3482,10 +3791,6 @@ function InvestmentsPage() {
               <path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
             </svg>
             {refreshing ? 'Refreshing…' : 'Refresh prices'}
-          </button>
-          <button onClick={openAddHolding} className="btn-primary flex items-center gap-1.5">
-            <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Add holding
           </button>
         </div>
       } />
@@ -3878,6 +4183,16 @@ function InvestmentsPage() {
 
       <HoldingModal open={showHoldingModal} onClose={() => setShowHoldingModal(false)} holding={editHolding} onSave={saveHolding} />
       <TransactionModal open={showTxnModal} onClose={() => setShowTxnModal(false)} holding={txnHolding} editTxn={editTxn} onSave={saveTxn} />
+
+      {/* Floating action button */}
+      <button onClick={openAddHolding}
+        className="fixed bottom-6 right-6 z-40 w-13 h-13 rounded-full shadow-2xl flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95"
+        style={{ background: 'linear-gradient(135deg, #d4a052, #a07840)', width: 52, height: 52 }}
+        title="Add holding">
+        <svg width="22" height="22" fill="none" stroke="#1a1714" strokeWidth="2.5" viewBox="0 0 24 24">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+      </button>
     </div>
   );
 }
