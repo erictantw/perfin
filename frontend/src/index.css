@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #1a1714;
+    color: #e8ddd0;
+    font-family: 'Inter', sans-serif;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+  }
+  * { box-sizing: border-box; }
+}
+
+@layer components {
+  .card {
+    @apply bg-[#1c1917] border border-[#292524] rounded-2xl p-5;
+  }
+
+  .btn-primary {
+    @apply bg-[#059669] hover:bg-[#10b981] text-white text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer;
+  }
+
+  .btn-secondary {
+    @apply bg-transparent border border-[#44403c] text-[#a8a29e] hover:text-[#e8ddd0] hover:border-[#57534e] text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer;
+  }
+
+  .input {
+    @apply w-full bg-[#0c0a09] border border-[#44403c] text-[#e8ddd0] text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-emerald-600 focus:border-emerald-600 transition-colors placeholder-[#44403c];
+  }
+
+  .nav-link {
+    @apply flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-[#78716c] hover:text-[#e8ddd0] hover:bg-white/5 transition-all cursor-pointer;
+  }
+
+  .nav-link.active {
+    @apply text-emerald-400 bg-emerald-500/10;
+  }
+
+  .section-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #78716c;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .page-title {
+    font-family: 'Lora', Georgia, serif;
+    font-size: clamp(1.35rem, 3vw, 1.85rem);
+    font-weight: 400;
+    color: #f0ebe4;
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+  }
+
+  .net-worth-num {
+    font-family: 'Lora', Georgia, serif;
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer utilities {
+  .page-enter {
+    animation: pageEnter 0.2s ease forwards;
+  }
+  @keyframes pageEnter {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .tabular-nums { font-variant-numeric: tabular-nums; }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+}
