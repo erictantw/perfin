@@ -87,7 +87,6 @@ function LoansPage() {
           </button>
         </div>
       } />
-      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <StatCard title="Total Outstanding" value={fmtSGD(totalOutstanding)} className="border-red-900/30" icon={() => <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>} />
