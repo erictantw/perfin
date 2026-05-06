@@ -1354,7 +1354,12 @@ function OverviewPage() {
   const hasCPF  = totalCPF > 0;
   const hasInv  = holdings.length > 0;
   const completedSteps = [hasCPF, hasCash, hasInv].filter(Boolean).length;
-  const [showOnboarding, setShowOnboarding] = React.useState(() => db.get('show_onboarding', false));
+  const allSetUp = hasCPF && hasCash && hasInv && !!profile.allocation_targets;
+  const [showOnboarding, setShowOnboarding] = React.useState(() => {
+    const stored = localStorage.getItem('wf_show_onboarding');
+    if (stored === null) return true; // first visit — auto-show
+    return JSON.parse(stored);
+  });
 
   // Monthly loans payment
   const totalMonthlyLoan = loans.reduce((s,l) => s+(l.monthly_payment||calcMonthlyRepayment(l.principal,l.annual_rate,l.tenure_months)), 0);
@@ -1470,11 +1475,13 @@ function OverviewPage() {
           </h1>
           <p style={{ fontSize:'0.72rem', color:'#6b6057', marginTop:4, fontFamily:'Inter,sans-serif' }}>{todayLong()}</p>
         </div>
-        <button onClick={()=>{ setShowOnboarding(true); db.set('show_onboarding',true); }}
-          style={{ fontSize:'0.7rem', color:'#44403c', background:'none', border:'none', cursor:'pointer', marginTop:4, fontFamily:'Inter,sans-serif' }}
-          className="hidden sm:block hover:text-stone-400 transition-colors">
-          Setup guide
-        </button>
+        {!allSetUp && (
+          <button onClick={()=>{ setShowOnboarding(true); db.set('show_onboarding',true); }}
+            style={{ fontSize:'0.7rem', color:'#44403c', background:'none', border:'none', cursor:'pointer', marginTop:4, fontFamily:'Inter,sans-serif' }}
+            className="hidden sm:block hover:text-stone-400 transition-colors">
+            Setup guide
+          </button>
+        )}
       </div>
 
       {/* Net Worth Hero Card */}
