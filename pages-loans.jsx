@@ -75,8 +75,7 @@ function LoansPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 style={{fontFamily:"'Lora',Georgia,serif",fontWeight:400,fontSize:'1.5rem',color:'#f0ebe4',letterSpacing:'-0.01em'}}>Loans</h1>
+      <PageHeader right={
         <div className="flex items-center gap-2">
           <button onClick={() => setShowCalc(true)} className="btn-secondary flex items-center gap-1.5">
             <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg>
@@ -87,6 +86,7 @@ function LoansPage() {
             Add loan
           </button>
         </div>
+      } />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

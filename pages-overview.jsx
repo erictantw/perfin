@@ -447,21 +447,13 @@ function OverviewPage() {
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 style={{ fontFamily:"'Lora',Georgia,serif", fontWeight:400, fontSize:'clamp(1.35rem,3vw,1.85rem)', color:'#f0ebe4', letterSpacing:'-0.02em', lineHeight:1.15 }}>
-            {greet()}, {profile.name||'there'}
-          </h1>
-          <p style={{ fontSize:'0.72rem', color:'#6b6057', marginTop:4, fontFamily:'Inter,sans-serif' }}>{todayLong()}</p>
-        </div>
-        {!allSetUp && (
-          <button onClick={()=>{ setShowOnboarding(true); db.set('show_onboarding',true); }}
-            style={{ fontSize:'0.7rem', color:'#44403c', background:'none', border:'none', cursor:'pointer', marginTop:4, fontFamily:'Inter,sans-serif' }}
-            className="hidden sm:block hover:text-stone-400 transition-colors">
-            Setup guide
-          </button>
-        )}
-      </div>
+      <PageHeader right={!allSetUp && (
+        <button onClick={()=>{ setShowOnboarding(true); db.set('show_onboarding',true); }}
+          style={{ fontSize:'0.7rem', color:'#44403c', background:'none', border:'none', cursor:'pointer', fontFamily:'Inter,sans-serif' }}
+          className="hidden sm:block hover:text-stone-400 transition-colors">
+          Setup guide
+        </button>
+      )} />
 
       {/* Net Worth Hero Card */}
       <div className="net-worth-glow-card" style={{

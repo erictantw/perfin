@@ -97,13 +97,12 @@ function HistoryPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 style={{fontFamily:"'Lora',Georgia,serif",fontWeight:400,fontSize:'1.5rem',color:'#f0ebe4',letterSpacing:'-0.01em'}}>History</h1>
+      <PageHeader right={
         <button onClick={() => setShowConfirm(true)} className="btn-primary flex items-center gap-1.5">
           <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
           Take snapshot
         </button>
-      </div>
+      } />
 
       {/* Net Worth Chart */}
       <div className="card">

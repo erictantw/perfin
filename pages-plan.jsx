@@ -45,14 +45,13 @@ function PlanPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 style={{fontFamily:"'Lora',Georgia,serif",fontWeight:400,fontSize:'1.5rem',color:'#f0ebe4',letterSpacing:'-0.01em'}}>Allocation Plan</h1>
+      <PageHeader right={
         <button onClick={handleSave} disabled={Math.round(targetTotal) !== 100}
           className="btn-primary flex items-center gap-1.5 disabled:opacity-40">
           <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           {saved ? 'Saved!' : 'Save targets'}
         </button>
-      </div>
+      } />
 
       {/* Target sliders */}
       <div className="card">

@@ -61,13 +61,12 @@ function InvestmentsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 style={{fontFamily:"'Lora',Georgia,serif",fontWeight:400,fontSize:'1.5rem',color:'#f0ebe4',letterSpacing:'-0.01em'}}>Investments</h1>
+      <PageHeader right={
         <button onClick={openAdd} className="btn-primary flex items-center gap-1.5">
           <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Add holding
         </button>
-      </div>
+      } />
 
       {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

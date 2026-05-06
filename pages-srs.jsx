@@ -167,10 +167,7 @@ function SRSTab({ tab, setTab }) {
   if (!data.hasSetup && !showSetup) {
     return (
       <div className="flex flex-col gap-6">
-        <div>
-          <h1 style={{ fontFamily: "'Lora',Georgia,serif", fontWeight: 400, fontSize: 'clamp(1.35rem,3vw,1.85rem)', color: '#f0ebe4', letterSpacing: '-0.02em' }}>{greet()}, {userName}</h1>
-          <p style={{ fontSize: '0.72rem', color: '#6b6057', marginTop: 4, fontFamily: 'Inter,sans-serif' }}>{todayLong()}</p>
-        </div>
+        <PageHeader />
         <TabToggle />
 
         {/* Intro card */}
@@ -199,10 +196,7 @@ function SRSTab({ tab, setTab }) {
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
-      <div>
-        <h1 style={{ fontFamily: "'Lora',Georgia,serif", fontWeight: 400, fontSize: 'clamp(1.35rem,3vw,1.85rem)', color: '#f0ebe4', letterSpacing: '-0.02em' }}>{greet()}, {userName}</h1>
-        <p style={{ fontSize: '0.72rem', color: '#6b6057', marginTop: 4, fontFamily: 'Inter,sans-serif' }}>{todayLong()}</p>
-      </div>
+      <PageHeader />
       <TabToggle />
 
       {/* Two-col layout */}

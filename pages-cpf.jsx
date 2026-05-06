@@ -358,12 +358,7 @@ function CPFPage() {
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 style={{ fontFamily: "'Lora',Georgia,serif", fontWeight: 400, fontSize: 'clamp(1.35rem,3vw,1.85rem)', color: '#f0ebe4', letterSpacing: '-0.02em' }}>{greet()}, {window.__userName || 'Alex'}</h1>
-          <p style={{ fontSize: '0.72rem', color: '#6b6057', marginTop: 4, fontFamily: 'Inter,sans-serif' }}>{todayLong()}</p>
-        </div>
-      </div>
+      <PageHeader />
 
       {/* Toggle */}
       <div style={{ display: 'inline-flex', padding: 4, borderRadius: 12, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.07)', alignSelf: 'flex-start' }}>
