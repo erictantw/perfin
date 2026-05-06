@@ -1,0 +1,70 @@
+[
+  {
+    "id": "cap_motqlnw9_m3nw7d",
+    "selector": "div.net-worth-card-inner",
+    "label": "TOTAL NET WORTH S$-67,258 All values con…",
+    "tag": "div",
+    "url": "https://merlio.ensoworld.com/overview",
+    "title": "Merlio",
+    "timestamp": "2026-05-06T07:29:46.041Z",
+    "innerText": "TOTAL NET WORTH\n\nS$-67,258\n\nAll values converted to SGD (1 USD = SGD 1.2710) · Updated 03:29 pm\n\n↻\nRefresh Prices\nFetch latest stock prices & FX rates\n1/24\n⊙\nSave snapshot\nSaves today's net worth to your history\nCash 72.6%\nInvestments 5.6%\nCPF · SRS 21.8%",
+    "outerHTML": "<div class=\"net-worth-card-inner p-5 sm:p-8 lg:p-10\"><p class=\"text-sm uppercase tracking-[0.12em] text-[#8a7d6b] font-sans mb-2\">Total Net Worth</p><div class=\"inline-flex items-center gap-2 cursor-pointer select-none group/nw mb-1\"><p class=\"net-worth-glow text-3xl sm:text-4xl lg:text-5xl font-playfair text-[#e8e3db]\">S$-67,258</p><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" class=\"shrink-0 mt-1 sm:mt-2 transition-all duration-200 text-[#6b6057] group-hover/nw:text-[#a09488]\" style=\"transform: rotate(0deg); transition: transform 0.2s, color 0.15s;\"><path d=\"M3 5.5L8 10.5L13 5.5\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"></path></svg></div><div class=\"flex items-center justify-between gap-4 flex-wrap mt-1\"><p class=\"text-xs text-[#8a7d6b] font-sans\">All values converted to SGD (1 USD = SGD 1.2710) · Updated 03:29 pm</p><div class=\"flex items-center gap-2\"><div class=\"relative group/refresh\"><button class=\"flex items-center gap-1.5 text-xs font-sans px-2.5 py-1.5 rounded-lg border transition-all duration-200 disabled:opacity-40\" style=\"color: var(--text-faint); border-color: var(--border-card);\"><span>↻</span>Refresh Prices</button><div class=\"pointer-events-none absolute bottom-full right-0 mb-2 whitespace-nowrap rounded-lg bg-[var(--bg-elevated)] border border-white/[0.1] px-3 py-1.5 text-xs font-sans text-[var(--text-secondary)] shadow-xl opacity-0 group-hover/refresh:opacity-100 transition-opacity duration-150\">Fetch latest stock prices &amp; FX rates</div></div><div class=\"relative group/tip flex items-center gap-2\"><span class=\"text-[11px] font-sans tabular-nums\" style=\"color: var(--text-faint);\">1/24</span><button class=\"flex items-center gap-1.5 text-xs font-sans font-semibold px-2.5 py-1.5 rounded-lg border transition-all duration-200 disabled:opacity-40 \" style=\"background: var(--accent); color: var(--text-on-accent); border-color: var(--accent);\"><span>⊙</span>Save snapshot</button><div class=\"pointer-events-none absolute bottom-full right-0 mb-2 whitespace-nowrap rounded-lg bg-[var(--bg-elevated)] border border-white/[0.1] px-3 py-1.5 text-xs font-sans text-[var(--text-secondary)] shadow-xl opacity-0 group-hover/tip:opacity-100 transition-opacity duration-150\">Saves today's net worth to your history</div></div></div></div><div class=\"mt-6 flex rounded-full overflow-hidden h-2 gap-px\"><div class=\"transition-all duration-500\" style=\"width: 72.6357%; background: rgb(74, 158, 122);\"></div><div class=\"transition-all duration-500\" style=\"width: 5.60986%; background: rgb(212, 160, 82);\"></div><div class=\"transition-all duration-500\" style=\"width: 21.7544%; background: rgb(122, 110, 184);\"></div></div><div class=\"mt-3 flex gap-4\"><div class=\"flex items-center gap-1.5\"><span class=\"w-2 h-2 rounded-full\" style=\"background: rgb(74, 158, 122);\"></span><span class=\"text-xs text-[#7a7068] font-sans\">Cash 72.6%</span></div><div class=\"flex items-center gap-1.5\"><span class=\"w-2 h-2 rounded-full\" style=\"background: rgb(212, 160, 82);\"></span><span class=\"text-xs text-[#7a7068] font-sans\">Investments 5.6%</span></div><div class=\"flex items-center gap-1.5\"><span class=\"w-2 h-2 rounded-full\" style=\"background: rgb(122, 110, 184);\"></span><span class=\"text-xs text-[#7a7068] font-sans\">CPF · SRS 21.8%</span></div></div></div>",
+    "rect": {
+      "x": 361,
+      "y": 167,
+      "width": 1198,
+      "height": 261
+    },
+    "computedStyles": {
+      "display": "block",
+      "width": "1198px",
+      "height": "260.875px",
+      "padding": "40px",
+      "border": "0px solid rgb(229, 231, 235)",
+      "border-radius": "15px",
+      "box-sizing": "border-box",
+      "box-shadow": "rgba(255, 255, 255, 0.07) 0px 1px 0px 0px inset",
+      "background": "rgb(30, 27, 24) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(232, 221, 208)",
+      "font-family": "ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+      "font-size": "16px",
+      "font-weight": "450",
+      "line-height": "24.8px",
+      "text-decoration": "none",
+      "overflow": "hidden",
+      "transition": "all"
+    },
+    "cssRules": [
+      {
+        "selector": "*, ::before, ::after",
+        "css": "--tw-border-spacing-x: 0; --tw-border-spacing-y: 0; --tw-translate-x: 0; --tw-translate-y: 0; --tw-rotate: 0; --tw-skew-x: 0; --tw-skew-y: 0; --tw-scale-x: 1; --tw-scale-y: 1; --tw-pan-x: ; --tw-pan-y: ; --tw-pinch-zoom: ; --tw-scroll-snap-strictness: proximity; --tw-gradient-from-position: ; --tw-gradient-via-position: ; --tw-gradient-to-position: ; --tw-ordinal: ; --tw-slashed-zero: ; --tw-numeric-figure: ; --tw-numeric-spacing: ; --tw-numeric-fraction: ; --tw-ring-inset: ; --tw-ring-offset-width: 0px; --tw-ring-offset-color: #fff; --tw-ring-color: rgb(59 130 246 / .5); --tw-ring-offset-shadow: 0 0 #0000; --tw-ring-shadow: 0 0 #0000; --tw-shadow: 0 0 #0000; --tw-shadow-colored: 0 0 #0000; --tw-blur: ; --tw-brightness: ; --tw-contrast: ; --tw-grayscale: ; --tw-hue-rotate: ; --tw-invert: ; --tw-saturate: ; --tw-sepia: ; --tw-drop-shadow: ; --tw-backdrop-blur: ; --tw-backdrop-brightness: ; --tw-backdrop-contrast: ; --tw-backdrop-grayscale: ; --tw-backdrop-hue-rotate: ; --tw-backdrop-invert: ; --tw-backdrop-opacity: ; --tw-backdrop-saturate: ; --tw-backdrop-sepia: ; --tw-contain-size: ; --tw-contain-layout: ; --tw-contain-paint: ; --tw-contain-style: ;"
+      },
+      {
+        "selector": "*, ::before, ::after",
+        "css": "box-sizing: border-box; border-width: 0px; border-style: solid; border-color: rgb(229, 231, 235);"
+      },
+      {
+        "selector": ".p-5",
+        "css": "padding: 1.25rem;"
+      },
+      {
+        "selector": "*",
+        "css": "scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent;"
+      },
+      {
+        "selector": ".net-worth-card-inner",
+        "css": "border-radius: calc(-1px + 1rem); background: rgb(30, 27, 24); overflow: hidden; box-shadow: rgba(255, 255, 255, 0.07) 0px 1px inset;"
+      },
+      {
+        "selector": ".sm\\:p-8",
+        "css": "padding: 2rem;",
+        "media": "(min-width: 640px)"
+      },
+      {
+        "selector": ".lg\\:p-10",
+        "css": "padding: 2.5rem;",
+        "media": "(min-width: 1024px)"
+      }
+    ]
+  }
+]

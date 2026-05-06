@@ -1,0 +1,80 @@
+[
+  {
+    "id": "cap_motroxyv_lnuru6",
+    "selector": "div.w-full",
+    "label": "Enable Auto-Update? Merlio will estimate…",
+    "tag": "div",
+    "url": "https://merlio.ensoworld.com/cpf",
+    "title": "Merlio",
+    "timestamp": "2026-05-06T08:00:18.679Z",
+    "innerText": "Enable Auto-Update?\n\nMerlio will estimate monthly CPF contributions based on your salary and age, and add them to your balances each month automatically. Figures are for planning reference only — refer to the CPF website for actual balances.\n\nI have verified my CPF balances against the CPF website and they are up to date.\nNot yet\nGot it, enable",
+    "outerHTML": "<div class=\"w-full max-w-sm rounded-2xl p-6 flex flex-col gap-5\" style=\"background: rgb(42, 37, 32); border: 1px solid rgba(212, 160, 82, 0.2);\"><div class=\"flex flex-col gap-1.5\"><h3 class=\"text-base font-serif text-[#c4bdb4]\">Enable Auto-Update?</h3><p class=\"text-xs text-[#7a7068] font-sans leading-relaxed\">Merlio will estimate monthly CPF contributions based on your salary and age, and add them to your balances each month automatically. Figures are for planning reference only — refer to the CPF website for actual balances.</p></div><label class=\"flex items-start gap-3 cursor-pointer group\"><div class=\"relative mt-0.5 shrink-0\"><input type=\"checkbox\" class=\"sr-only\"><div class=\"w-5 h-5 rounded flex items-center justify-center transition-colors\" style=\"background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.15);\"></div></div><span class=\"text-xs font-sans leading-relaxed text-[#a09890] group-hover:text-[#c4bdb4] transition-colors\">I have verified my CPF balances against the CPF website and they are up to date.</span></label><div class=\"flex gap-3\"><button type=\"button\" class=\"flex-1 py-2.5 rounded-lg text-sm font-sans text-[#7a7068] transition-colors hover:text-[#c4bdb4]\" style=\"background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08);\">Not yet</button><button type=\"button\" disabled=\"\" class=\"flex-1 py-2.5 rounded-lg text-sm font-sans font-medium transition-all disabled:opacity-30\" style=\"background: rgba(212, 160, 82, 0.15); border: 1px solid rgba(212, 160, 82, 0.3); color: rgb(212, 160, 82);\">Got it, enable</button></div></div>",
+    "rect": {
+      "x": 1519,
+      "y": 322,
+      "width": 384,
+      "height": 313
+    },
+    "computedStyles": {
+      "display": "flex",
+      "width": "384px",
+      "height": "313.172px",
+      "padding": "24px",
+      "border": "1px solid rgba(212, 160, 82, 0.2)",
+      "border-radius": "16px",
+      "box-sizing": "border-box",
+      "background": "rgb(42, 37, 32) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(232, 221, 208)",
+      "font-family": "ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+      "font-size": "16px",
+      "font-weight": "450",
+      "line-height": "24.8px",
+      "text-decoration": "none",
+      "flex-direction": "column",
+      "gap": "20px",
+      "transition": "all"
+    },
+    "cssRules": [
+      {
+        "selector": "*, ::before, ::after",
+        "css": "--tw-border-spacing-x: 0; --tw-border-spacing-y: 0; --tw-translate-x: 0; --tw-translate-y: 0; --tw-rotate: 0; --tw-skew-x: 0; --tw-skew-y: 0; --tw-scale-x: 1; --tw-scale-y: 1; --tw-pan-x: ; --tw-pan-y: ; --tw-pinch-zoom: ; --tw-scroll-snap-strictness: proximity; --tw-gradient-from-position: ; --tw-gradient-via-position: ; --tw-gradient-to-position: ; --tw-ordinal: ; --tw-slashed-zero: ; --tw-numeric-figure: ; --tw-numeric-spacing: ; --tw-numeric-fraction: ; --tw-ring-inset: ; --tw-ring-offset-width: 0px; --tw-ring-offset-color: #fff; --tw-ring-color: rgb(59 130 246 / .5); --tw-ring-offset-shadow: 0 0 #0000; --tw-ring-shadow: 0 0 #0000; --tw-shadow: 0 0 #0000; --tw-shadow-colored: 0 0 #0000; --tw-blur: ; --tw-brightness: ; --tw-contrast: ; --tw-grayscale: ; --tw-hue-rotate: ; --tw-invert: ; --tw-saturate: ; --tw-sepia: ; --tw-drop-shadow: ; --tw-backdrop-blur: ; --tw-backdrop-brightness: ; --tw-backdrop-contrast: ; --tw-backdrop-grayscale: ; --tw-backdrop-hue-rotate: ; --tw-backdrop-invert: ; --tw-backdrop-opacity: ; --tw-backdrop-saturate: ; --tw-backdrop-sepia: ; --tw-contain-size: ; --tw-contain-layout: ; --tw-contain-paint: ; --tw-contain-style: ;"
+      },
+      {
+        "selector": "*, ::before, ::after",
+        "css": "box-sizing: border-box; border-width: 0px; border-style: solid; border-color: rgb(229, 231, 235);"
+      },
+      {
+        "selector": ".flex",
+        "css": "display: flex;"
+      },
+      {
+        "selector": ".w-full",
+        "css": "width: 100%;"
+      },
+      {
+        "selector": ".max-w-sm",
+        "css": "max-width: 24rem;"
+      },
+      {
+        "selector": ".flex-col",
+        "css": "flex-direction: column;"
+      },
+      {
+        "selector": ".gap-5",
+        "css": "gap: 1.25rem;"
+      },
+      {
+        "selector": ".rounded-2xl",
+        "css": "border-radius: 1rem;"
+      },
+      {
+        "selector": ".p-6",
+        "css": "padding: 1.5rem;"
+      },
+      {
+        "selector": "*",
+        "css": "scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent;"
+      }
+    ]
+  }
+]

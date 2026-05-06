@@ -1,0 +1,105 @@
+[
+  {
+    "id": "cap_motqgy6l_lq41hg",
+    "selector": "div#bd-popup",
+    "label": "Cash + S$60,100 Investments + S$4,642 CP…",
+    "tag": "div",
+    "url": "https://merlio.ensoworld.com/overview",
+    "title": "Merlio",
+    "timestamp": "2026-05-06T07:26:06.093Z",
+    "innerText": "Cash\n+ S$60,100\nInvestments\n+ S$4,642\nCPF · SRS\n+ S$18,000\nLoans\n− S$150,000\nNet Worth\nS$-67,258",
+    "outerHTML": "<div id=\"bd-popup\" class=\"fixed z-50 bg-[var(--bg-elevated)] border border-white/[0.1] rounded-xl p-4 text-xs font-sans text-[var(--text-secondary)] shadow-2xl\" style=\"top: 293.188px; left: 401px; min-width: 240px;\"><div class=\"flex items-center justify-between gap-8 mb-1.5 last:mb-0\"><div class=\"flex items-center gap-1.5\"><span class=\"w-1.5 h-1.5 rounded-full flex-shrink-0\" style=\"background: rgb(74, 158, 122);\"></span><span>Cash</span></div><span style=\"color: rgb(74, 158, 122);\">+ S$60,100</span></div><div class=\"flex items-center justify-between gap-8 mb-1.5 last:mb-0\"><div class=\"flex items-center gap-1.5\"><span class=\"w-1.5 h-1.5 rounded-full flex-shrink-0\" style=\"background: rgb(212, 160, 82);\"></span><span>Investments</span></div><span style=\"color: rgb(212, 160, 82);\">+ S$4,642</span></div><div class=\"flex items-center justify-between gap-8 mb-1.5 last:mb-0\"><div class=\"flex items-center gap-1.5\"><span class=\"w-1.5 h-1.5 rounded-full flex-shrink-0\" style=\"background: rgb(122, 110, 184);\"></span><span>CPF · SRS</span></div><span style=\"color: rgb(122, 110, 184);\">+ S$18,000</span></div><div class=\"flex items-center justify-between gap-8 mb-1.5\"><div class=\"flex items-center gap-1.5\"><span class=\"w-1.5 h-1.5 rounded-full flex-shrink-0 bg-[#c4564a]\"></span><span>Loans</span></div><span class=\"text-[#c4564a]\">− S$150,000</span></div><div class=\"mt-2 pt-2 border-t border-white/[0.08] flex items-center justify-between gap-8\"><span class=\"text-[var(--text-muted)]\">Net Worth</span><span class=\"text-[var(--text-primary)] font-medium\">S$-67,258</span></div></div>",
+    "rect": {
+      "x": 401,
+      "y": 293,
+      "width": 240,
+      "height": 160
+    },
+    "computedStyles": {
+      "display": "block",
+      "position": "fixed",
+      "top": "293.188px",
+      "right": "1279px",
+      "bottom": "504.875px",
+      "left": "401px",
+      "width": "240px",
+      "height": "159.938px",
+      "padding": "16px",
+      "border": "1px solid rgba(255, 255, 255, 0.1)",
+      "border-radius": "12px",
+      "box-sizing": "border-box",
+      "box-shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.25) 0px 25px 50px -12px",
+      "background": "rgb(31, 28, 25) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(160, 146, 130)",
+      "font-family": "ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+      "font-size": "13px",
+      "font-weight": "450",
+      "line-height": "18.2px",
+      "text-decoration": "none",
+      "z-index": "50",
+      "transition": "all"
+    },
+    "cssRules": [
+      {
+        "selector": "*, ::before, ::after",
+        "css": "--tw-border-spacing-x: 0; --tw-border-spacing-y: 0; --tw-translate-x: 0; --tw-translate-y: 0; --tw-rotate: 0; --tw-skew-x: 0; --tw-skew-y: 0; --tw-scale-x: 1; --tw-scale-y: 1; --tw-pan-x: ; --tw-pan-y: ; --tw-pinch-zoom: ; --tw-scroll-snap-strictness: proximity; --tw-gradient-from-position: ; --tw-gradient-via-position: ; --tw-gradient-to-position: ; --tw-ordinal: ; --tw-slashed-zero: ; --tw-numeric-figure: ; --tw-numeric-spacing: ; --tw-numeric-fraction: ; --tw-ring-inset: ; --tw-ring-offset-width: 0px; --tw-ring-offset-color: #fff; --tw-ring-color: rgb(59 130 246 / .5); --tw-ring-offset-shadow: 0 0 #0000; --tw-ring-shadow: 0 0 #0000; --tw-shadow: 0 0 #0000; --tw-shadow-colored: 0 0 #0000; --tw-blur: ; --tw-brightness: ; --tw-contrast: ; --tw-grayscale: ; --tw-hue-rotate: ; --tw-invert: ; --tw-saturate: ; --tw-sepia: ; --tw-drop-shadow: ; --tw-backdrop-blur: ; --tw-backdrop-brightness: ; --tw-backdrop-contrast: ; --tw-backdrop-grayscale: ; --tw-backdrop-hue-rotate: ; --tw-backdrop-invert: ; --tw-backdrop-opacity: ; --tw-backdrop-saturate: ; --tw-backdrop-sepia: ; --tw-contain-size: ; --tw-contain-layout: ; --tw-contain-paint: ; --tw-contain-style: ;"
+      },
+      {
+        "selector": "*, ::before, ::after",
+        "css": "box-sizing: border-box; border-width: 0px; border-style: solid; border-color: rgb(229, 231, 235);"
+      },
+      {
+        "selector": ".fixed",
+        "css": "position: fixed;"
+      },
+      {
+        "selector": ".z-50",
+        "css": "z-index: 50;"
+      },
+      {
+        "selector": ".rounded-xl",
+        "css": "border-radius: 0.75rem;"
+      },
+      {
+        "selector": ".border",
+        "css": "border-width: 1px;"
+      },
+      {
+        "selector": ".border-white\\/\\[0\\.1\\]",
+        "css": "border-color: rgba(255, 255, 255, 0.1);"
+      },
+      {
+        "selector": ".bg-\\[var\\(--bg-elevated\\)\\]",
+        "css": "background-color: var(--bg-elevated);"
+      },
+      {
+        "selector": ".p-4",
+        "css": "padding: 1rem;"
+      },
+      {
+        "selector": ".font-sans",
+        "css": "font-family: ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";"
+      },
+      {
+        "selector": ".text-xs",
+        "css": "font-size: 0.8125rem; line-height: 1.4;"
+      },
+      {
+        "selector": ".text-\\[var\\(--text-secondary\\)\\]",
+        "css": "color: var(--text-secondary);"
+      },
+      {
+        "selector": ".shadow-2xl",
+        "css": "--tw-shadow: 0 25px 50px -12px rgb(0 0 0 / .25); --tw-shadow-colored: 0 25px 50px -12px var(--tw-shadow-color); box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000),var(--tw-ring-shadow, 0 0 #0000),var(--tw-shadow);"
+      },
+      {
+        "selector": ".font-mono, [class*=\"font-sans\"]",
+        "css": "font-variant-numeric: tabular-nums;"
+      },
+      {
+        "selector": "*",
+        "css": "scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent;"
+      }
+    ]
+  }
+]
